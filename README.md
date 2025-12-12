@@ -51,7 +51,25 @@ That's it! No need to build Equilibria Core or install Node.js.
 
 **Note**: Don't open the wallet yet! First, we need to set up the Docker containers.
 
-### Step 3: Start the Service Node (Daemon) in Docker
+### Step 3: Create Docker Network
+
+**Important:** Before starting the containers, create a Docker network so they can communicate with each other using container names.
+
+**Linux / Git Bash:**
+
+```bash
+docker network create equilibria-network
+```
+
+**Windows PowerShell:**
+
+```powershell
+docker network create equilibria-network
+```
+
+**Note:** If you get an error that the network already exists, that's fine - you can proceed to the next step.
+
+### Step 4: Start the Service Node (Daemon) in Docker
 
 **Important:** Replace `YOUR_PUBLIC_IP_ADDRESS` with your actual public IP address. You can find your public IP by visiting https://api.ipify.org or running:
 
@@ -65,6 +83,7 @@ Open a terminal/command prompt and run:
 ```bash
 docker run -dit \
   --name sn01 \
+  --network equilibria-network \
   -p 18090:18090 \
   -p 18091:18091 \
   -p 38160:38160 \
@@ -75,12 +94,12 @@ docker run -dit \
   --service-node \
   --fixed-difficulty=750 \
   --data-dir=/data \
-      --p2p-bind-ip=0.0.0.0 \
-      --p2p-bind-port=18090 \
-      --rpc-bind-ip=0.0.0.0 \
-      --rpc-bind-port=18091 \
-      --confirm-external-bind \
-      --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS \
+  --p2p-bind-ip=0.0.0.0 \
+  --p2p-bind-port=18090 \
+  --rpc-bind-ip=0.0.0.0 \
+  --rpc-bind-port=18091 \
+  --confirm-external-bind \
+  --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS \
   --l2-provider=http://84.247.143.210:8545 \
   --quorumnet-port=38160 \
   --log-level=2
@@ -91,6 +110,7 @@ docker run -dit \
 ```powershell
 docker run -dit `
   --name sn01 `
+  --network equilibria-network `
   -p 18090:18090 `
   -p 18091:18091 `
   -p 38160:38160 `
@@ -101,12 +121,12 @@ docker run -dit `
   --service-node `
   --fixed-difficulty=750 `
   --data-dir=/data `
-      --p2p-bind-ip=0.0.0.0 `
-      --p2p-bind-port=18090 `
-      --rpc-bind-ip=0.0.0.0 `
-      --rpc-bind-port=18091 `
-      --confirm-external-bind `
-      --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS `
+  --p2p-bind-ip=0.0.0.0 `
+  --p2p-bind-port=18090 `
+  --rpc-bind-ip=0.0.0.0 `
+  --rpc-bind-port=18091 `
+  --confirm-external-bind `
+  --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS `
   --l2-provider=http://84.247.143.210:8545 `
   --quorumnet-port=38160 `
   --log-level=2
@@ -120,7 +140,7 @@ docker ps
 
 You should see a container named `sn01` running.
 
-### Step 4: Start the Wallet RPC in Docker
+### Step 5: Start the Wallet RPC in Docker
 
 In the same terminal, run:
 

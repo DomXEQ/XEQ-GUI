@@ -231,8 +231,8 @@ docker start wallet-rpc
 **Check container logs:**
 
 ```bash
-docker logs equilibria-daemon
-docker logs equilibria-wallet-rpc
+docker logs sn01
+docker logs wallet-rpc
 ```
 
 ### Port Already in Use

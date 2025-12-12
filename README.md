@@ -268,7 +268,8 @@ docker run -d `
   --daemon-address=host.docker.internal:18091 `
   --disable-rpc-login `
   --wallet-dir=/data `
-  --log-level=3
+  --log-level=3 `
+  --confirm-external-bind
 ```
 
 ### Resetting Everything

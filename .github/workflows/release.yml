@@ -114,18 +114,30 @@ jobs:
         with:
           name: windows-build
           path: release/windows
+          if-no-files-found: warn
+          continue-on-error: true
 
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux-build
           path: release/linux
+          if-no-files-found: warn
+          continue-on-error: true
 
       - name: Extract version from tag
         id: get_version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Find release files
+        id: find_files
+        run: |
+          echo "Windows files:"
+          find release/windows -type f 2>/dev/null || echo "No Windows files found"
+          echo "Linux files:"
+          find release/linux -type f 2>/dev/null || echo "No Linux files found"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -134,6 +146,7 @@ jobs:
             release/windows/*.exe
             release/linux/*.AppImage
             release/linux/*.deb
+          fail_on_unmatched_files: false
           draft: false
           prerelease: false
           body: |

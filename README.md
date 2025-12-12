@@ -224,8 +224,8 @@ docker ps
 If containers aren't running, start them:
 
 ```bash
-docker start equilibria-daemon
-docker start equilibria-wallet-rpc
+docker start sn01
+docker start wallet-rpc
 ```
 
 **Check container logs:**

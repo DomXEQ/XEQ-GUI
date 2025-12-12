@@ -41,8 +41,8 @@ jobs:
         with:
           name: windows-build
           path: |
-            dist/electron/*.exe
-            dist/electron/**/*.exe
+            dist/electron/equilibria-electron-wallet-*-win.exe
+            dist/electron/equilibria-electron-wallet-*-portable.exe
           retention-days: 30
 
   build-linux:

@@ -25,8 +25,9 @@ jobs:
 
       - name: Create bin directory placeholder
         run: |
-          mkdir -p bin
-          echo. > bin\.gitkeep
+          if (-not (Test-Path bin)) { New-Item -ItemType Directory -Path bin }
+          if (-not (Test-Path bin\.gitkeep)) { echo. > bin\.gitkeep }
+        continue-on-error: true
 
       - name: Build Windows
         run: npm run build:win

@@ -21,7 +21,11 @@ module.exports = function() {
       // gzip: true,
       // analyze: true,
       // extractCSS: false,
-      extendWebpack() {
+      extendWebpack(cfg) {
+        // Fix for Node.js 17+ OpenSSL issue
+        if (cfg.output && !cfg.output.hashFunction) {
+          cfg.output.hashFunction = "md4";
+        }
         /*
                 cfg.module.rules.push({
                     enforce: "pre",
@@ -135,10 +139,17 @@ module.exports = function() {
     },
     electron: {
       bundler: "builder", // or "packager"
-      extendWebpack() {
+      extendWebpack(cfg) {
+        // Fix for Node.js 17+ OpenSSL issue
+        if (cfg.output && !cfg.output.hashFunction) {
+          cfg.output.hashFunction = "md4";
+        }
         // cfg
         // do something with Electron process Webpack cfg
       },
+      // Custom electron command to remove NODE_OPTIONS before spawning
+      // This is a workaround for Electron not allowing --openssl-legacy-provider
+      // We'll handle this in the run script instead
       packager: {
         // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
 
@@ -156,16 +167,43 @@ module.exports = function() {
       builder: {
         // https://www.electron.build/configuration/configuration
 
-        appId: "com.oxen.electron-wallet",
-        productName: "Oxen Electron Wallet",
-        copyright: "Copyright © 2018-2022 Oxen, 2018 Ryo Currency Project",
+        appId: "com.equilibria.electron-wallet",
+        productName: "Equilibria Electron Wallet",
+        copyright: "Copyright © 2025 Equilibria",
         afterSign: "build/notarize.js",
-        artifactName: "oxen-electron-wallet-${version}-${os}.${ext}",
+        artifactName: "equilibria-electron-wallet-${version}-${os}.${ext}",
         publish: "github",
+
+        win: {
+          target: [
+            {
+              target: "nsis",
+              arch: ["x64"]
+            },
+            {
+              target: "portable",
+              arch: ["x64"]
+            }
+          ],
+          icon: "src-electron/icons/icon.ico",
+          publisherName: "Equilibria"
+        },
+
+        nsis: {
+          oneClick: false,
+          allowToChangeInstallationDirectory: true,
+          createDesktopShortcut: true,
+          createStartMenuShortcut: true,
+          shortcutName: "Equilibria Electron Wallet"
+        },
+
+        portable: {
+          artifactName: "equilibria-electron-wallet-${version}-portable.exe"
+        },
 
         linux: {
           target: ["AppImage", "deb"],
-          icon: "oxen-electron-wallet.png",
+          icon: "src-electron/icons/linux-512x512.png",
           category: "Finance"
         },
         // see https://www.electron.build/configuration/linux#debian-package-options
@@ -200,11 +238,6 @@ module.exports = function() {
         dmg: {
           background: "src-electron/build/oxen-dmg.tiff",
           sign: false
-        },
-
-        nsis: {
-          oneClick: false,
-          allowToChangeInstallationDirectory: true
         },
 
         files: [

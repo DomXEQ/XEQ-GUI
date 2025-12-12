@@ -27,7 +27,8 @@ export class WalletRPC {
       unlocked_balance: null,
       accrued_balance: null,
       accrued_balance_next_payout: null,
-      onsRecords: []
+      onsRecords: [],
+      password_salt: null // Store salt for remote wallets
     };
     this.isRPCSyncing = false;
     this.dirs = null;
@@ -67,6 +68,56 @@ export class WalletRPC {
   start(options) {
     const { net_type } = options.app;
     const daemon = options.daemons[net_type];
+    const wallet = options.wallet;
+
+    // Check if wallet RPC is remote
+    if (wallet.type === "remote") {
+      this.local = false;
+      this.protocol = "http://";
+      this.hostname = wallet.remote_host;
+      this.port = wallet.remote_port;
+      // No authentication for remote wallet RPC (assumes --disable-rpc-login)
+      this.auth = [null, null, null];
+      this.disable_rpc_login = wallet.disable_rpc_login || false;
+
+      // Set wallet directory paths for remote wallet (still need to read local files for listing)
+      const { net_type, wallet_data_dir, data_dir } = options.app;
+      this.net_type = net_type;
+      this.data_dir = data_dir;
+      this.wallet_data_dir = wallet_data_dir;
+
+      this.dirs = {
+        mainnet: this.wallet_data_dir,
+        stagenet: path.join(this.wallet_data_dir, "stagenet"),
+        testnet: path.join(this.wallet_data_dir, "testnet")
+      };
+
+      // For remote wallets, use the wallet_data_dir directly (not a subdirectory)
+      // The Docker wallet-rpc uses --wallet-dir=/data, and wallets are directly in that directory
+      // So we read from wallet_data_dir directly to match the Docker volume mount
+      this.wallet_dir = this.wallet_data_dir;
+
+      return new Promise((resolve, reject) => {
+        // Test connection to remote wallet RPC
+        this.sendRPC("get_languages", {}, 5000)
+          .then(data => {
+            if (!data.hasOwnProperty("error")) {
+              this.startHeartbeat();
+              resolve();
+            } else {
+              reject(new Error("Could not connect to remote wallet RPC"));
+            }
+          })
+          .catch(error => {
+            reject(
+              new Error(
+                `Could not connect to remote wallet RPC: ${error.message}`
+              )
+            );
+          });
+      });
+    }
+
     return new Promise((resolve, reject) => {
       let daemon_address = `${daemon.rpc_bind_ip}:${daemon.rpc_bind_port}`;
       if (daemon.type == "remote") {
@@ -137,18 +188,22 @@ export class WalletRPC {
         this.hostname = "127.0.0.1";
         this.port = options.wallet.rpc_bind_port;
 
-        const rpcExecutable =
-          process.platform === "win32"
-            ? "oxen-wallet-rpc.exe"
-            : "oxen-wallet-rpc";
-        // eslint-disable-next-line no-undef
-        const rpcPath = path.join(__ryo_bin, rpcExecutable);
+        // Try .exe first on Windows, then without extension
+        let rpcPath;
+        if (process.platform === "win32") {
+          rpcPath = path.join(__ryo_bin, "xeq-wallet-rpc.exe");
+          if (!fs.existsSync(rpcPath)) {
+            rpcPath = path.join(__ryo_bin, "xeq-wallet-rpc");
+          }
+        } else {
+          rpcPath = path.join(__ryo_bin, "xeq-wallet-rpc");
+        }
 
         // Check if the rpc exists
         if (!fs.existsSync(rpcPath)) {
           reject(
             new Error(
-              "Failed to find Oxen Wallet RPC. Please make sure your anti-virus has not removed it."
+              "Failed to find Equilibria Wallet RPC. Please make sure your anti-virus has not removed it."
             )
           );
           return;
@@ -456,6 +511,21 @@ export class WalletRPC {
     }
   }
 
+  // Get password salt - use stored salt or auth[2], or generate/store a new one for remote wallets
+  getPasswordSalt() {
+    if (this.auth[2]) {
+      return this.auth[2];
+    }
+    // For remote wallets, use stored salt or generate and store one
+    if (!this.wallet_state.password_salt) {
+      this.wallet_state.password_salt = crypto
+        .randomBytes(32)
+        .toString("hex")
+        .substr(0, 32);
+    }
+    return this.wallet_state.password_salt;
+  }
+
   isValidPasswordHash(password_hash) {
     if (this.wallet_state.password_hash === null) return true;
     return this.wallet_state.password_hash === password_hash.toString("hex");
@@ -470,7 +540,7 @@ export class WalletRPC {
     // We need to check if the hash generated with an empty string is the same as the password_hash we are storing
     crypto.pbkdf2(
       "",
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -535,8 +605,10 @@ export class WalletRPC {
       }
 
       // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+      // For remote wallets, this.auth[2] might be null, so generate a salt if needed
+      const salt = this.getPasswordSalt();
       this.wallet_state.password_hash = crypto
-        .pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512")
+        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
         .toString("hex");
       this.wallet_state.name = filename;
       this.wallet_state.open = true;
@@ -595,8 +667,10 @@ export class WalletRPC {
       }
 
       // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+      // For remote wallets, this.auth[2] might be null, so generate a salt if needed
+      const salt = this.getPasswordSalt();
       this.wallet_state.password_hash = crypto
-        .pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512")
+        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
         .toString("hex");
       this.wallet_state.name = filename;
       this.wallet_state.open = true;
@@ -660,8 +734,10 @@ export class WalletRPC {
       }
 
       // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+      // For remote wallets, this.auth[2] might be null, so generate a salt if needed
+      const salt = this.getPasswordSalt();
       this.wallet_state.password_hash = crypto
-        .pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512")
+        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
         .toString("hex");
       this.wallet_state.name = filename;
       this.wallet_state.open = true;
@@ -746,8 +822,10 @@ export class WalletRPC {
             return;
           }
           // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+          // For remote wallets, this.auth[2] might be null, so generate a salt if needed
+          const salt = this.getPasswordSalt();
           this.wallet_state.password_hash = crypto
-            .pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512")
+            .pbkdf2Sync(password, salt, 1000, 64, "sha512")
             .toString("hex");
           this.wallet_state.name = wallet_name;
           this.wallet_state.open = true;
@@ -766,7 +844,7 @@ export class WalletRPC {
 
   finalizeNewWallet(filename) {
     Promise.all([
-      this.sendRPC("get_address"),
+      this.sendRPC("get_address", { account_index: 0 }),
       this.sendRPC("getheight"),
       this.sendRPC("getbalance", { account_index: 0 }),
       this.sendRPC("query_key", { key_type: "mnemonic" }),
@@ -875,8 +953,10 @@ export class WalletRPC {
       const hardware_wallet = fs.existsSync(hardware_wallet_file);
 
       // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+      // For remote wallets, this.auth[2] might be null, so generate a salt if needed
+      const salt = this.getPasswordSalt();
       this.wallet_state.password_hash = crypto
-        .pbkdf2Sync(password, this.auth[2], 1000, 64, "sha512")
+        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
         .toString("hex");
       this.wallet_state.name = filename;
       this.wallet_state.open = true;
@@ -1015,6 +1095,16 @@ export class WalletRPC {
       // Set the wallet state on initial heartbeat
       if (extended) {
         if (!didError) {
+          // Ensure wallet.info has current balance data even if it didn't change
+          if (
+            !wallet.info.hasOwnProperty("balance") &&
+            this.wallet_state.balance !== null
+          ) {
+            wallet.info.balance = this.wallet_state.balance;
+            wallet.info.unlocked_balance = this.wallet_state.unlocked_balance;
+            wallet.info.accrued_balance = this.wallet_state.accrued_balance;
+            wallet.info.accrued_balance_next_payout = this.wallet_state.accrued_balance_next_payout;
+          }
           this.sendGateway("set_wallet_data", wallet);
         } else {
           this.closeWallet().then(() => {
@@ -1154,7 +1244,7 @@ export class WalletRPC {
 
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -1451,7 +1541,7 @@ export class WalletRPC {
   stake(password, amount, service_node_key, destination) {
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -1516,7 +1606,7 @@ export class WalletRPC {
   registerSnode(password, register_service_node_str) {
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -1594,7 +1684,7 @@ export class WalletRPC {
     // Unlock code 0 means success, 1 means can unlock, -1 means error
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -1679,32 +1769,113 @@ export class WalletRPC {
 
     // submit each transaction individually
     for (let hex of this.pending_tx.metadataList) {
-      const params = {
+      let params = {
         hex,
         blink: isBlink
       };
 
       // don't try submit more txs if a prev one failed
       if (failed) break;
+
+      let txSuccess = false;
       try {
         let data = await this.sendRPC("relay_tx", params);
         if (data.hasOwnProperty("error")) {
-          errorMessage = data.error.message || errorMessage;
-          failed = true;
-          break;
-        } else if (data.hasOwnProperty("result")) {
+          // If Blink transaction failed with timeout or rejection, retry as regular transaction
+          const errorMsg = (
+            data.error.message ||
+            data.error.msg ||
+            ""
+          ).toLowerCase();
+          const errorCode = (data.error.code || "").toString().toLowerCase();
+          const errorString = JSON.stringify(data.error).toLowerCase();
+          const isBlinkError =
+            errorMsg.includes("blink") ||
+            errorMsg.includes("quorum") ||
+            errorMsg.includes("timeout") ||
+            errorCode.includes("blink") ||
+            errorCode.includes("quorum") ||
+            errorString.includes("tx_blink_rejected") ||
+            errorString.includes("blink quorum");
+
+          // Check for double spend or verification failed - these usually mean outputs are already spent
+          const isDoubleSpend =
+            errorMsg.includes("double spend") ||
+            errorMsg.includes("verification failed") ||
+            errorString.includes("double spend") ||
+            errorCode.includes("double_spend");
+
+          if (isBlink && isBlinkError) {
+            // Retry as regular (non-Blink) transaction
+            console.log(
+              "[WalletRPC] Blink transaction failed, retrying as regular transaction"
+            );
+            params.blink = false;
+            data = await this.sendRPC("relay_tx", params);
+
+            if (data.hasOwnProperty("error")) {
+              errorMessage = data.error.message || errorMessage;
+              failed = true;
+              break;
+            }
+          } else if (isDoubleSpend) {
+            // Double spend error - clear pending tx and suggest rescan
+            console.warn(
+              "[WalletRPC] Double spend detected, clearing pending transaction. User should rescan wallet."
+            );
+            this.pending_tx = null;
+            errorMessage =
+              "Transaction failed: Outputs already spent. Please rescan your wallet to sync with the blockchain.";
+            failed = true;
+            break;
+          } else {
+            errorMessage = errorMsg || errorMessage;
+            failed = true;
+            break;
+          }
+        }
+
+        if (data.hasOwnProperty("result")) {
           const tx_hash = data.result.tx_hash;
           if (note && note !== "") {
             this.saveTxNotes(tx_hash, note);
           }
+          txSuccess = true;
         } else {
           errorMessage = "Invalid format of relay_tx RPC return message";
           failed = true;
           break;
         }
       } catch (e) {
-        failed = true;
-        errorMessage = e.toString();
+        // If Blink transaction threw an error, try regular transaction as fallback
+        if (isBlink && !txSuccess) {
+          try {
+            console.log(
+              "[WalletRPC] Blink transaction exception, retrying as regular transaction"
+            );
+            params.blink = false;
+            let data = await this.sendRPC("relay_tx", params);
+            if (data.hasOwnProperty("result")) {
+              const tx_hash = data.result.tx_hash;
+              if (note && note !== "") {
+                this.saveTxNotes(tx_hash, note);
+              }
+              txSuccess = true;
+            } else if (data.hasOwnProperty("error")) {
+              errorMessage = data.error.message || e.toString();
+              failed = true;
+              break;
+            }
+          } catch (retryError) {
+            failed = true;
+            errorMessage = e.toString();
+            break;
+          }
+        } else {
+          failed = true;
+          errorMessage = e.toString();
+          break;
+        }
       }
     }
 
@@ -1729,6 +1900,13 @@ export class WalletRPC {
       }
       // no more pending txs, clear it out.
       this.pending_tx = null;
+
+      // Force a refresh to detect change outputs and new transactions
+      // Wait a moment for the transaction to be processed by the wallet RPC
+      setTimeout(() => {
+        this.heartbeatAction(true);
+      }, 2000);
+
       return;
     }
 
@@ -1845,7 +2023,14 @@ export class WalletRPC {
         });
     };
 
-    crypto.pbkdf2(password, this.auth[2], 1000, 64, "sha512", cryptoCallback);
+    crypto.pbkdf2(
+      password,
+      this.getPasswordSalt(),
+      1000,
+      64,
+      "sha512",
+      cryptoCallback
+    );
   }
 
   purchaseONS(password, type, name, value, owner, backupOwner) {
@@ -1862,7 +2047,7 @@ export class WalletRPC {
 
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -1934,7 +2119,7 @@ export class WalletRPC {
 
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -2107,7 +2292,7 @@ export class WalletRPC {
   getPrivateKeys(password) {
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -2399,7 +2584,7 @@ export class WalletRPC {
   exportKeyImages(password, filename = null) {
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -2475,7 +2660,7 @@ export class WalletRPC {
   importKeyImages(password, filename = null) {
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -2540,7 +2725,7 @@ export class WalletRPC {
   exportTransfers(password, filename = null) {
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -2839,7 +3024,7 @@ export class WalletRPC {
   changeWalletPassword(old_password, new_password) {
     crypto.pbkdf2(
       old_password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -2875,8 +3060,15 @@ export class WalletRPC {
           }
 
           // store hash of the password so we can check against it later when requesting private keys, or for sending txs
+          // For remote wallets, this.auth[2] might be null, so generate a salt if needed
+          const salt =
+            this.auth[2] ||
+            crypto
+              .randomBytes(32)
+              .toString("hex")
+              .substr(0, 32);
           this.wallet_state.password_hash = crypto
-            .pbkdf2Sync(new_password, this.auth[2], 1000, 64, "sha512")
+            .pbkdf2Sync(new_password, salt, 1000, 64, "sha512")
             .toString("hex");
 
           this.sendGateway("show_notification", {
@@ -2891,7 +3083,7 @@ export class WalletRPC {
   deleteWallet(password) {
     crypto.pbkdf2(
       password,
-      this.auth[2],
+      this.getPasswordSalt(),
       1000,
       64,
       "sha512",
@@ -2981,13 +3173,17 @@ export class WalletRPC {
         id: id,
         method: method
       },
-      auth: {
+      agent: this.agent
+    };
+
+    // Only add authentication if we have auth credentials (local wallet RPC)
+    if (this.auth[0] && this.auth[1]) {
+      options.auth = {
         user: this.auth[0],
         pass: this.auth[1],
         sendImmediately: false
-      },
-      agent: this.agent
-    };
+      };
+    }
     if (Object.keys(params).length !== 0) {
       options.json.params = params;
     }
@@ -3031,6 +3227,7 @@ export class WalletRPC {
 
   async quit() {
     return new Promise(resolve => {
+      // If using remote wallet RPC, nothing to quit
       if (!this.walletRPCProcess) {
         resolve();
         return;

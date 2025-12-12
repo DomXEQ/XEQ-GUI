@@ -36,21 +36,26 @@ export class Backend {
   init(config) {
     let configDir;
     let legacyLokiConfigDir;
+    let legacyOxenConfigDir;
     if (os.platform() === "win32") {
-      configDir = "C:\\ProgramData\\oxen";
+      configDir = "C:\\ProgramData\\equilibria";
       legacyLokiConfigDir = "C:\\ProgramData\\loki\\";
-      this.wallet_dir = `${os.homedir()}\\Documents\\Oxen`;
+      legacyOxenConfigDir = "C:\\ProgramData\\oxen\\";
+      this.wallet_dir = `${os.homedir()}\\Documents\\Equilibria`;
     } else {
-      configDir = path.join(os.homedir(), ".oxen");
+      configDir = path.join(os.homedir(), ".equilibria");
       legacyLokiConfigDir = path.join(os.homedir(), ".loki/");
-      this.wallet_dir = path.join(os.homedir(), "Oxen");
+      legacyOxenConfigDir = path.join(os.homedir(), ".oxen/");
+      this.wallet_dir = path.join(os.homedir(), "Equilibria");
     }
 
-    // if the user has used loki before, just keep the same stuff
+    // if the user has used loki or oxen before, just keep the same stuff
     if (fs.existsSync(legacyLokiConfigDir)) {
       this.config_dir = legacyLokiConfigDir;
+    } else if (fs.existsSync(legacyOxenConfigDir)) {
+      this.config_dir = legacyOxenConfigDir;
     } else {
-      // create the new, Oxen location
+      // create the new, Equilibria location
       this.config_dir = configDir;
       if (!fs.existsSync(configDir)) {
         fs.mkdirpSync(configDir);
@@ -91,9 +96,11 @@ export class Backend {
       },
       testnet: {
         ...daemon,
-        type: "local",
-        p2p_bind_port: 38156,
-        rpc_bind_port: 38157
+        type: "remote",
+        remote_host: "127.0.0.1",
+        remote_port: 18091,
+        p2p_bind_port: 18090,
+        rpc_bind_port: 18091
       }
     };
 
@@ -104,10 +111,13 @@ export class Backend {
         data_dir: this.config_dir,
         wallet_data_dir: this.wallet_dir,
         ws_bind_port: 12313,
-        net_type: "mainnet"
+        net_type: "testnet"
       },
       wallet: {
+        type: "local",
         rpc_bind_port: 22026,
+        remote_host: "127.0.0.1",
+        remote_port: 18084,
         log_level: 0
       }
     };
@@ -413,6 +423,11 @@ export class Backend {
         return;
       }
 
+      // Remove BOM (Byte Order Mark) if present
+      if (data.charCodeAt(0) === 0xfeff) {
+        data = data.slice(1);
+      }
+
       let disk_config_data = JSON.parse(data);
 
       // semi-shallow object merge
@@ -527,25 +542,61 @@ export class Backend {
 
       // Make sure the remote node provided is accessible
       const config_daemon = this.config_data.daemons[net_type];
-      this.daemon.checkRemote(config_daemon).then(data => {
-        if (data.error) {
-          // If we can default to local then we do so, otherwise we tell the user  to re-set the node
-          if (config_daemon.type === "local_remote") {
-            this.config_data.daemons[net_type].type = "local";
-            this.send("set_app_data", {
-              config: this.config_data,
-              pending_config: this.config_data
-            });
-            this.send("show_notification", {
-              type: "warning",
-              textColor: "black",
-              i18n: "notification.warnings.usingLocalNode",
-              timeout: 2000
-            });
-          } else {
+
+      // Add timeout wrapper for checkRemote to prevent hanging
+      const checkRemotePromise = this.daemon.checkRemote(config_daemon);
+      const timeoutPromise = new Promise(resolve => {
+        setTimeout(() => {
+          resolve({ error: { message: "Connection timeout" } });
+        }, 25000); // 25 second timeout (slightly longer than checkRemote's 20s)
+      });
+
+      Promise.race([checkRemotePromise, timeoutPromise])
+        .then(data => {
+          if (data.error) {
+            console.error(
+              "[Backend] Error checking remote daemon:",
+              data.error
+            );
+            // If we can default to local then we do so, otherwise we tell the user  to re-set the node
+            if (config_daemon.type === "local_remote") {
+              this.config_data.daemons[net_type].type = "local";
+              this.send("set_app_data", {
+                config: this.config_data,
+                pending_config: this.config_data
+              });
+              this.send("show_notification", {
+                type: "warning",
+                textColor: "black",
+                i18n: "notification.warnings.usingLocalNode",
+                timeout: 2000
+              });
+            } else {
+              this.send("show_notification", {
+                type: "negative",
+                text: `Cannot access remote node: ${data.error.message ||
+                  "Connection failed"}`,
+                timeout: 5000
+              });
+
+              // Go back to config
+              this.send("set_app_data", {
+                status: {
+                  code: -1 // Return to config screen
+                }
+              });
+              return;
+            }
+          }
+
+          // If we got a net type back then check if ours match
+          if (data.net_type && data.net_type !== net_type) {
+            console.warn(
+              `[Backend] Network type mismatch: expected ${net_type}, got ${data.net_type}`
+            );
             this.send("show_notification", {
               type: "negative",
-              i18n: "notification.errors.cannotAccessRemoteNode",
+              i18n: "notification.errors.differentNetType",
               timeout: 2000
             });
 
@@ -557,28 +608,8 @@ export class Backend {
             });
             return;
           }
-        }
 
-        // If we got a net type back then check if ours match
-        if (data.net_type && data.net_type !== net_type) {
-          this.send("show_notification", {
-            type: "negative",
-            i18n: "notification.errors.differentNetType",
-            timeout: 2000
-          });
-
-          // Go back to config
-          this.send("set_app_data", {
-            status: {
-              code: -1 // Return to config screen
-            }
-          });
-          return;
-        }
-
-        this.daemon
-          .checkVersion()
-          .then(version => {
+          this.daemon.checkVersion().then(version => {
             if (version) {
               this.send("set_app_data", {
                 status: {
@@ -598,80 +629,94 @@ export class Backend {
               });
             }
 
-            this.daemon
-              .start(this.config_data)
-              .then(() => {
-                this.send("set_app_data", {
-                  status: {
-                    code: 6 // Starting wallet
-                  }
-                });
-
-                this.walletd
-                  .start(this.config_data)
-                  .then(() => {
-                    this.send("set_app_data", {
-                      status: {
-                        code: 7 // Reading wallet list
-                      }
-                    });
-
-                    this.walletd.listWallets(true);
-
-                    this.send("set_app_data", {
-                      status: {
-                        code: 0 // Ready
-                      }
-                    });
-                    // eslint-disable-next-line
-                  })
-                  .catch(error => {
-                    this.daemon.killProcess();
-                    this.send("show_notification", {
-                      type: "negative",
-                      message: error.message,
-                      timeout: 3000
-                    });
-                    this.send("set_app_data", {
-                      status: {
-                        code: -1 // Return to config screen
-                      }
-                    });
-                  });
-                // eslint-disable-next-line
-              })
-              .catch(error => {
-                if (this.config_data.daemons[net_type].type == "remote") {
-                  this.send("show_notification", {
-                    type: "negative",
-                    i18n: "notification.errors.remoteCannotBeReached",
-                    timeout: 3000
-                  });
-                } else {
-                  this.send("show_notification", {
-                    type: "negative",
-                    message: error.message,
-                    timeout: 3000
-                  });
+            this.daemon.start(this.config_data).then(() => {
+              this.send("set_app_data", {
+                status: {
+                  code: 6 // Starting wallet
                 }
-                this.send("set_app_data", {
-                  status: {
-                    code: -1 // Return to config screen
-                  }
-                });
               });
-            // eslint-disable-next-line
-          })
-          .catch(() => {
-            this.send("set_app_data", {
-              status: {
-                code: -1 // Return to config screen
-              }
-            });
+
+              this.walletd
+                .start(this.config_data)
+                .then(() => {
+                  this.send("set_app_data", {
+                    status: {
+                      code: 7 // Reading wallet list
+                    }
+                  });
+
+                  this.walletd.listWallets(true);
+
+                  this.send("set_app_data", {
+                    status: {
+                      code: 0 // Ready
+                    }
+                  });
+                  // eslint-disable-next-line
+                })
+                .catch(error => {
+                  console.error("[Backend] Error starting wallet RPC:", error);
+                  this.send("show_notification", {
+                    type: "negative",
+                    text: `Error starting wallet RPC: ${error.message ||
+                      error}`,
+                    timeout: 5000
+                  });
+                  this.send("set_app_data", {
+                    status: {
+                      code: -1 // Return to config screen
+                    }
+                  });
+                })
+                .catch(error => {
+                  console.error("[Backend] Error starting daemon:", error);
+                  this.send("show_notification", {
+                    type: "negative",
+                    text: `Error starting daemon: ${error.message || error}`,
+                    timeout: 5000
+                  });
+                  this.send("set_app_data", {
+                    status: {
+                      code: -1 // Return to config screen
+                    }
+                  });
+                })
+                .catch(error => {
+                  console.error(
+                    "[Backend] Error checking daemon version:",
+                    error
+                  );
+                  this.send("show_notification", {
+                    type: "negative",
+                    text: `Error checking daemon version: ${error.message ||
+                      error}`,
+                    timeout: 5000
+                  });
+                  this.send("set_app_data", {
+                    status: {
+                      code: -1 // Return to config screen
+                    }
+                  });
+                });
+            }); // closes .then(version => { from line 603 and checkVersion() chain
+          }); // closes .then(data => { from line 550
+        })
+        .catch(error => {
+          console.error("[Backend] Error in checkRemote promise:", error);
+          this.send("show_notification", {
+            type: "negative",
+            text: `Error connecting to remote daemon: ${error.message ||
+              error}`,
+            timeout: 5000
           });
-      });
-    });
-  }
+          this.send("set_app_data", {
+            status: {
+              code: -1 // Return to config screen
+            }
+          });
+        }); // closes Promise.race().then().catch() chain
+    }); // closes fs.readFile callback
+  } // closes startup() method
 
   quit() {
     return new Promise(resolve => {

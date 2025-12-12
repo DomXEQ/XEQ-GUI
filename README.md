@@ -1,52 +1,357 @@
-# Oxen Electron GUI Wallet
+# Equilibria Electron GUI Wallet
 
 ### Introduction
 
-Oxen (formerly Loki) is a private cryptocurrency based on Monero. Oxen aims to provide a private data transmission layer using a second layer of Service Nodes.
-More information on the project can be found on the [website](https://oxen.io) and in the [whitepaper](https://loki.network/whitepaper). Oxen is an open source project, and we encourage contributions from anyone with something to offer.
+Equilibria is a private cryptocurrency based on Monero. Equilibria aims to provide a private data transmission layer using a second layer of Service Nodes. More information on the project can be found on the [website](https://equilibria.network).
 
-![Oxen wallet image](./src-electron/icons/mrcuug.PNG)
+![Equilibria wallet image](./src-electron/icons/mrcuug.PNG)
 
-### About this project
+---
 
-This is the new Electron GUI for Oxen. It is open source and completely free to use without restrictions, anyone may create an alternative implementation of the Oxen Electron GUI that uses the protocol and network in a compatible manner.
+## 🚀 Quick Start Guide (For End Users)
 
-Please submit any changes as pull requests to the development branch, all changes are assessed in the development branch before being merged to master, release tags are considered stable builds for the GUI.
+This guide will help you get the Equilibria Electron GUI Wallet running on your Windows or Linux PC. You don't need to build anything - just download, set up Docker, and run!
 
-#### Pre-requisites
+### Prerequisites
 
-- Download latest [oxend](https://github.com/oxen-io/oxen-core/releases/latest)
-- Extract the oxend binaries to a folder
+Before you begin, make sure you have:
 
-#### Commands
+1. **Docker Desktop** installed and running
 
+   - **Windows**: Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
+   - **Linux**: Install Docker Engine - see [docker.com/docs/engine/install](https://docs.docker.com/engine/install/)
+   - Make sure Docker is running before proceeding
+
+2. **Internet connection**
+
+That's it! No need to build Equilibria Core or install Node.js.
+
+---
+
+## Step-by-Step Setup
+
+### Step 1: Download the GUI Wallet
+
+1. Go to the [Releases page](https://github.com/EquilibriaHorizon/equilibria-electron-gui-wallet/releases)
+2. Download the latest release for your operating system:
+   - **Windows**: Download `equilibria-electron-wallet-{version}-win.exe` (installer) or `equilibria-electron-wallet-{version}-portable.exe` (portable)
+   - **Linux**: Download `equilibria-electron-wallet-{version}-linux.AppImage` (portable) or `equilibria-electron-wallet-{version}-linux.deb` (installer)
+
+### Step 2: Extract/Run the GUI Wallet
+
+**Windows:**
+
+- **Installer**: Double-click the `.exe` file and follow the installation wizard
+- **Portable**: Extract the `.exe` file to a folder and double-click it to run
+
+**Linux:**
+
+- **AppImage**: Make it executable (`chmod +x equilibria-electron-wallet-*.AppImage`) and double-click to run
+- **Debian Package**: Install with `sudo dpkg -i equilibria-electron-wallet-*.deb`
+
+**Note**: Don't open the wallet yet! First, we need to set up the Docker containers.
+
+### Step 3: Start the Service Node (Daemon) in Docker
+
+Open a terminal/command prompt and run:
+
+```bash
+docker run -d \
+  --name equilibria-daemon \
+  -p 18090:18090 \
+  -p 18091:18091 \
+  -v equilibria-data:/data \
+  ghcr.io/equilibriahorizon/equilibria-node:latest \
+  --testnet \
+  --rpc-bind-ip=0.0.0.0 \
+  --rpc-bind-port=18091 \
+  --p2p-bind-ip=0.0.0.0 \
+  --p2p-bind-port=18090
 ```
-nvm use 14.11.0
-npm install -g @quasar/cli
-git clone https://github.com/oxen-io/oxen-electron-gui-wallet
-cd oxen-electron-gui-wallet
-cp path_to_oxend_binaries/oxend bin/
-cp path_to_oxend_binaries/oxen-wallet-rpc bin/
+
+**Windows PowerShell:**
+
+```powershell
+docker run -d `
+  --name equilibria-daemon `
+  -p 18090:18090 `
+  -p 18091:18091 `
+  -v equilibria-data:/data `
+  ghcr.io/equilibriahorizon/equilibria-node:latest `
+  --testnet `
+  --rpc-bind-ip=0.0.0.0 `
+  --rpc-bind-port=18091 `
+  --p2p-bind-ip=0.0.0.0 `
+  --p2p-bind-port=18090
+```
+
+Wait a few seconds for the container to start. You can verify it's running with:
+
+```bash
+docker ps
+```
+
+You should see a container named `equilibria-daemon` running.
+
+### Step 4: Start the Wallet RPC in Docker
+
+In the same terminal, run:
+
+```bash
+docker run -d \
+  --name equilibria-wallet-rpc \
+  -p 22026:22026 \
+  -v equilibria-wallets:/wallets \
+  --network host \
+  ghcr.io/equilibriahorizon/equilibria-node:latest \
+  xeq-wallet-rpc \
+  --testnet \
+  --rpc-bind-ip=0.0.0.0 \
+  --rpc-bind-port=22026 \
+  --daemon-address=127.0.0.1:18091 \
+  --wallet-dir=/wallets
+```
+
+**Windows PowerShell:**
+
+```powershell
+docker run -d `
+  --name equilibria-wallet-rpc `
+  -p 22026:22026 `
+  -v equilibria-wallets:/wallets `
+  --network host `
+  ghcr.io/equilibriahorizon/equilibria-node:latest `
+  xeq-wallet-rpc `
+  --testnet `
+  --rpc-bind-ip=0.0.0.0 `
+  --rpc-bind-port=22026 `
+  --daemon-address=127.0.0.1:18091 `
+  --wallet-dir=/wallets
+```
+
+Verify both containers are running:
+
+```bash
+docker ps
+```
+
+You should see both `equilibria-daemon` and `equilibria-wallet-rpc` running.
+
+### Step 5: Open the GUI Wallet
+
+Now you can open the Equilibria Electron GUI Wallet:
+
+- **Windows**: Double-click the desktop shortcut (if installed) or the executable file
+- **Linux**: Double-click the AppImage or launch from your applications menu
+
+The wallet should connect to your Docker containers automatically. If you see "Connected" in the status bar, you're all set!
+
+---
+
+## Using the Wallet
+
+### Creating a New Wallet
+
+1. Click **"Create New Wallet"**
+2. Enter a wallet name
+3. Choose a strong password (or leave blank for no password)
+4. Save your seed phrase in a safe place - you'll need it to restore your wallet!
+5. Click **"Create Wallet"**
+
+### Opening an Existing Wallet
+
+1. Select your wallet from the list
+2. Enter your password if the wallet is password-protected
+3. Click **"Open"**
+
+### Sending XEQ
+
+1. Click the **"Send"** tab
+2. Enter the recipient's address
+3. Enter the amount
+4. Choose transaction speed (Blink for instant, Slow for regular)
+5. Click **"Send"**
+
+### Receiving XEQ
+
+1. Click the **"Receive"** tab
+2. Copy your wallet address or scan the QR code
+3. Share this address with the sender
+
+---
+
+## Troubleshooting
+
+### GUI Won't Connect
+
+**Check Docker containers are running:**
+
+```bash
+docker ps
+```
+
+If containers aren't running, start them:
+
+```bash
+docker start equilibria-daemon
+docker start equilibria-wallet-rpc
+```
+
+**Check container logs:**
+
+```bash
+docker logs equilibria-daemon
+docker logs equilibria-wallet-rpc
+```
+
+### Port Already in Use
+
+If you get an error about ports being in use, you may have another instance running. Stop existing containers:
+
+```bash
+docker stop equilibria-daemon equilibria-wallet-rpc
+docker rm equilibria-daemon equilibria-wallet-rpc
+```
+
+Then restart them using the commands in Steps 3 and 4.
+
+### Wallet RPC Connection Issues
+
+Make sure the wallet RPC container can reach the daemon. On Windows, you may need to use `host.docker.internal` instead of `127.0.0.1`:
+
+```bash
+docker run -d \
+  --name equilibria-wallet-rpc \
+  -p 22026:22026 \
+  -v equilibria-wallets:/wallets \
+  ghcr.io/equilibriahorizon/equilibria-node:latest \
+  xeq-wallet-rpc \
+  --testnet \
+  --rpc-bind-ip=0.0.0.0 \
+  --rpc-bind-port=22026 \
+  --daemon-address=host.docker.internal:18091 \
+  --wallet-dir=/wallets
+```
+
+### Resetting Everything
+
+To start fresh (this will delete all wallet data):
+
+```bash
+docker stop equilibria-daemon equilibria-wallet-rpc
+docker rm equilibria-daemon equilibria-wallet-rpc
+docker volume rm equilibria-data equilibria-wallets
+```
+
+Then follow Steps 3-5 again.
+
+---
+
+## Stopping the Containers
+
+When you're done using the wallet, you can stop the Docker containers:
+
+```bash
+docker stop equilibria-daemon equilibria-wallet-rpc
+```
+
+To start them again later:
+
+```bash
+docker start equilibria-daemon
+docker start equilibria-wallet-rpc
+```
+
+---
+
+## Testnet Configuration
+
+The GUI wallet is configured to work with the Equilibria testnet by default. The default testnet ports are:
+
+- **P2P Port:** 18090
+- **Daemon RPC Port:** 18091
+- **Wallet RPC Port:** 22026
+
+These ports are configured in the Docker commands above. If you need to change them, update the port mappings in the `docker run` commands.
+
+---
+
+## Service Node Features
+
+The GUI wallet includes full service node functionality:
+
+- Register new service nodes
+- Stake to existing service nodes
+- View service node details and status
+- View network statistics
+- Manage your staked service nodes
+- Unlock staked funds
+
+---
+
+## For Developers
+
+### Building from Source
+
+If you want to build the wallet from source or contribute to development:
+
+#### Prerequisites
+
+- Node.js (version 14.x or 16.x recommended)
+- npm
+- Git
+
+#### Installation
+
+```bash
+git clone https://github.com/EquilibriaHorizon/equilibria-electron-gui-wallet.git
+cd equilibria-electron-gui-wallet
 npm install
 ```
 
-For dev:
+#### Development
 
-```
+Run the wallet in development mode:
+
+```bash
 npm run dev
 ```
 
-For building:
+#### Building Executables
 
-**Note:** This will only build the binaries for the system you run the command on. Running this command on `linux` will only make `linux` binaries, no `mac` or `windows` binaries.
+Build for your current platform:
 
-```
+```bash
 npm run build
 ```
 
-### Adding language support
+Build for specific platforms:
 
-Adding a new language is fairly simple.
+```bash
+# Windows
+npm run build:win
+
+# Linux
+npm run build:linux
+
+# macOS
+npm run build:mac
+
+# Both Windows and Linux
+npm run build:all
+```
+
+Built executables will be in the `dist/electron/` directory.
+
+**Note:** Building will only create binaries for the system you run the command on. Running `npm run build` on Linux will only make Linux binaries, not Windows or macOS binaries.
+
+### Contributing
+
+Please submit any changes as pull requests to the development branch. All changes are assessed in the development branch before being merged to master. Release tags are considered stable builds for the GUI.
+
+### Adding Language Support
+
+Adding a new language is fairly simple:
 
 1. Duplicate the language file `src/i18n/en-us.js` and rename it to the relevant language code.
 2. Translate all the strings in that duplicated file. Take note that capitalization matters.
@@ -63,3 +368,19 @@ Adding a new language is fairly simple.
 4. Add your language locale to Vue Timeago. Add it in `src/plugins/timeago.js` under `locales`.
    - Ref: https://github.com/egoist/vue-timeago#update-locale-globally
 5. Submit a PR with your changes.
+
+---
+
+## License
+
+This project is open source and completely free to use without restrictions. Anyone may create an alternative implementation of the Equilibria Electron GUI that uses the protocol and network in a compatible manner.
+
+---
+
+## Support
+
+For issues, questions, or contributions, please visit:
+
+- **GitHub**: [github.com/EquilibriaHorizon/equilibria-electron-gui-wallet](https://github.com/EquilibriaHorizon/equilibria-electron-gui-wallet)
+- **Documentation**: [equilibria-network.gitbook.io/docs](https://equilibria-network.gitbook.io/docs)
+- **Telegram**: [t.me/XEQCommunity](https://t.me/XEQCommunity)

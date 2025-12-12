@@ -15,7 +15,7 @@
               flat
               :options="[
                 {
-                  label: $t('strings.oxenBalance'),
+                  label: $t('strings.xeqBalance'),
                   value: 'balance'
                 },
                 {
@@ -24,19 +24,32 @@
                 }
               ]"
             />
-            <div class="value">
+            <div class="value row items-center justify-center">
               <span><FormatOxen :amount="info.balance"/></span>
+              <q-btn
+                flat
+                dense
+                round
+                icon="refresh"
+                size="sm"
+                color="white"
+                class="q-ml-sm"
+                :disable="!is_wallet_open"
+                @click="rescanWallet"
+              >
+                <q-tooltip>{{ $t("menuItems.rescanWallet") }}</q-tooltip>
+              </q-btn>
             </div>
           </div>
           <div v-if="balancestakeselector != 'stake'" class="row unlocked">
             <span
-              >{{ $t("strings.oxenUnlockedShort") }}:
+              >{{ $t("strings.xeqUnlockedShort") }}:
               <FormatOxen :amount="info.unlocked_balance"
             /></span>
           </div>
           <div v-if="balancestakeselector == 'stake'" class="row unlocked">
             <span v-if="info.accrued_balance > 0"
-              >{{ $t("strings.oxenAccumulatedRewards") }}:
+              >{{ $t("strings.xeqAccumulatedRewards") }}:
               <FormatOxen :amount="info.accrued_balance" />•
               {{ $t("strings.nextPayout") }}:
               <FormatNextPayout
@@ -74,12 +87,36 @@ export default {
   },
   computed: mapState({
     theme: state => state.gateway.app.config.appearance.theme,
-    info: state => state.gateway.wallet.info
+    info: state => state.gateway.wallet.info,
+    is_wallet_open: state =>
+      state.gateway.wallet.info && state.gateway.wallet.info.name
   }),
   data() {
     return {
       balancestakeselector: "balance"
     };
+  },
+  methods: {
+    rescanWallet() {
+      this.$q
+        .dialog({
+          title: this.$t("dialog.rescan.title"),
+          message: this.$t("dialog.rescan.message"),
+          ok: {
+            label: this.$t("dialog.rescan.ok"),
+            color: "primary"
+          },
+          cancel: {
+            flat: true,
+            label: this.$t("buttons.cancel")
+          }
+        })
+        .onOk(() => {
+          this.$gateway.send("wallet", "rescan_blockchain");
+        })
+        .onDismiss(() => {})
+        .onCancel(() => {});
+    }
   }
 };
 </script>
@@ -103,6 +140,19 @@ export default {
       }
       .value {
         font-size: 35px;
+
+        .q-btn {
+          opacity: 0.7;
+          transition: opacity 0.2s;
+
+          &:hover {
+            opacity: 1;
+          }
+
+          &[disabled] {
+            opacity: 0.3;
+          }
+        }
       }
     }
 

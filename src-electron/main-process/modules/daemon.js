@@ -29,25 +29,41 @@ export class Daemon {
   checkVersion() {
     return new Promise(resolve => {
       if (process.platform === "win32") {
-        let oxend_path = path.join(__ryo_bin, "oxend.exe");
-        let oxend_version_cmd = `"${oxend_path}" --version`;
-        if (!fs.existsSync(oxend_path)) {
-          resolve(false);
+        // Try .exe first, then without extension
+        let xeqd_path = path.join(__ryo_bin, "xeq-d.exe");
+        if (!fs.existsSync(xeqd_path)) {
+          xeqd_path = path.join(__ryo_bin, "xeq-d");
         }
-        child_process.exec(oxend_version_cmd, (error, stdout) => {
+        if (!fs.existsSync(xeqd_path)) {
+          console.log(`[Daemon] xeq-d not found at: ${xeqd_path}`);
+          console.log(`[Daemon] __ryo_bin is: ${__ryo_bin}`);
+          console.log(
+            `[Daemon] Checking if bin directory exists: ${fs.existsSync(
+              __ryo_bin
+            )}`
+          );
+          resolve(false);
+          return;
+        }
+        console.log(`[Daemon] Found xeq-d at: ${xeqd_path}`);
+        let xeqd_version_cmd = `"${xeqd_path}" --version`;
+        child_process.exec(xeqd_version_cmd, (error, stdout) => {
           if (error) {
+            console.log(`[Daemon] Error running xeq-d --version:`, error);
             resolve(false);
           }
           resolve(stdout);
         });
       } else {
-        let oxend_path = path.join(__ryo_bin, "oxend");
-        let oxend_version_cmd = `"${oxend_path}" --version`;
-        if (!fs.existsSync(oxend_path)) {
+        let xeqd_path = path.join(__ryo_bin, "xeq-d");
+        let xeqd_version_cmd = `"${xeqd_path}" --version`;
+        if (!fs.existsSync(xeqd_path)) {
+          console.log(`[Daemon] xeq-d not found at: ${xeqd_path}`);
           resolve(false);
+          return;
         }
         child_process.exec(
-          oxend_version_cmd,
+          xeqd_version_cmd,
           { detached: true },
           (error, stdout) => {
             if (error) {
@@ -148,9 +164,15 @@ export class Daemon {
         args.push("--stagenet");
       }
 
-      args.push("--log-file", path.join(dirs[net_type], "logs", "oxend.log"));
+      args.push("--log-file", path.join(dirs[net_type], "logs", "xeq-d.log"));
       if (daemon.rpc_bind_ip !== "127.0.0.1") {
         args.push("--confirm-external-bind");
+      }
+
+      // Add bootstrap/priority nodes for testnet
+      if (net_type === "testnet") {
+        // Add priority node for testnet bootstrap
+        args.push("--add-priority-node", "84.247.143.210:18080");
       }
 
       // TODO: Check if we need to push this command for staging too
@@ -172,13 +194,15 @@ export class Daemon {
         .then(status => {
           if (status === "closed") {
             if (process.platform === "win32") {
-              this.daemonProcess = child_process.spawn(
-                path.join(__ryo_bin, "oxend.exe"),
-                args
-              );
+              // Try .exe first, then without extension
+              let xeqd_path = path.join(__ryo_bin, "xeq-d.exe");
+              if (!fs.existsSync(xeqd_path)) {
+                xeqd_path = path.join(__ryo_bin, "xeq-d");
+              }
+              this.daemonProcess = child_process.spawn(xeqd_path, args);
             } else {
               this.daemonProcess = child_process.spawn(
-                path.join(__ryo_bin, "oxend"),
+                path.join(__ryo_bin, "xeq-d"),
                 args,
                 {
                   detached: true
@@ -244,6 +268,10 @@ export class Daemon {
     switch (data.method) {
       case "ban_peer":
         this.banPeer(params.host, params.seconds);
+        break;
+
+      case "update_service_nodes":
+        this.updateServiceNodes();
         break;
 
       default:

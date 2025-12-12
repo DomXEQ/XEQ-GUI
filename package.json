@@ -1,22 +1,25 @@
 {
-  "name": "oxen-electron-wallet",
-  "version": "1.8.1",
-  "description": "Modern GUI interface for Oxen Currency",
-  "productName": "Oxen Electron Wallet",
+  "name": "equilibria-electron-wallet",
+  "version": "1.0.0",
+  "description": "Modern GUI interface for Equilibria Currency",
+  "productName": "Equilibria Electron Wallet",
   "repository": {
     "type": "git",
-    "url": "https://github.com/loki-project/loki-electron-gui-wallet.git"
+    "url": "https://github.com/EquilibriaHorizon/equilibria-electron-gui-wallet.git"
   },
-  "cordovaId": "com.oxen.wallet",
+  "cordovaId": "com.equilibria.wallet",
   "author": {
-    "name": "Oxen",
-    "email": "oxen@oxen.io"
+    "name": "Equilibria",
+    "email": "info@equilibria.network"
   },
   "private": true,
   "scripts": {
     "dev": "quasar dev -m electron",
     "build": "quasar build -m electron --publish=never",
-    "windows": "quasar build -m electron --publish=never -T win",
+    "build:win": "quasar build -m electron --publish=never -T win",
+    "build:linux": "quasar build -m electron --publish=never -T linux",
+    "build:mac": "quasar build -m electron --publish=never -T mac",
+    "build:all": "npm run build:win && npm run build:linux",
     "lint": "eslint --fix .",
     "format": "prettier --write \"**/*.+(js|jsx|json|yml|yaml|css|md|vue)\"",
     "ready": "npm run lint && npm run format"
@@ -45,6 +48,7 @@
     "@quasar/app": "^2.0.8",
     "@quasar/extras": "^1.9.4",
     "babel-eslint": "^10.1.0",
+    "cross-env": "^7.0.3",
     "devtron": "^1.4.0",
     "dotenv": "^8.1.0",
     "electron": "^4.1.1",

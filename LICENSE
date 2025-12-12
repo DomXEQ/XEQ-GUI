@@ -1,4 +1,9 @@
-BSD-3 
+BSD 3-Clause License
+
+Copyright (c) 2025, Equilibria
+Copyright (c) 2018-2021, Oxen (formerly Loki)
+Copyright (c) 2018, Ryo Currency Project
+Copyright (c) 2014-2018, The Monero Project
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -27,10 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------------------------
 
-BSD-licensed version of the code can be found at:
+This software is based on the following projects:
+- Monero Project: https://github.com/monero-project/monero
+- Ryo Currency Project: https://github.com/ryo-currency/ryo-emergency
+- Oxen (formerly Loki): https://github.com/oxen-io/oxen-electron-gui-wallet
 
-https://github.com/monero-project/monero/tree/e2c39f6b59fcf5c623c814dfefc518ab0b7eca32
-https://github.com/ryo-currency/ryo-emergency/tree/9d1f51c453978badad21b2feaca2f4348ab26bfa
-
-Portions of this wallet have been released by the RYO wallet developers into public domain, we are thankful for their contributions
-
+Portions of this wallet have been released by the RYO wallet developers into public domain, we are thankful for their contributions.

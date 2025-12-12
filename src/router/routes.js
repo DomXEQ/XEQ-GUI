@@ -94,6 +94,10 @@ export default [
         component: () => import("pages/wallet/service-node")
       },
       {
+        path: "network-stats",
+        component: () => import("pages/wallet/network-stats")
+      },
+      {
         path: "ons",
         component: () => import("pages/wallet/ons")
       },

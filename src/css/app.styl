@@ -8,10 +8,10 @@
 }
 
 ::selection {
-    background: #63c9f3;
+    background: #129fca;
 }
 ::-moz-selection {
-    background: #63c9f3;
+    background: #129fca;
 }
 
 * {
@@ -551,6 +551,8 @@ footer,
 
     .q-item {
         background: $oxen-navy;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+        transition: box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out;
         .wallet-icon {
             color: $oxen-teal;
             g,path {
@@ -561,6 +563,7 @@ footer,
 
     .q-item:hover, .q-item.selected {
         background: $oxen-purple !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
 
         .wallet-icon {
             color: $oxen-teal;
@@ -572,6 +575,10 @@ footer,
         .q-icon {
             color: white;
         }
+    }
+
+    .q-item:active {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
     }
 }
 

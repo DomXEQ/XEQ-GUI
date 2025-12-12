@@ -4,7 +4,7 @@
       <MainMenu />
       <q-toolbar-title style="background: white;">
         <div class="flex items-center justify-center" style="margin:8px">
-          <img src="oxen.svg" height="32" />
+          <img src="equilibria.svg" height="32" />
         </div>
       </q-toolbar-title>
     </q-header>
@@ -41,6 +41,15 @@
               :label="$t('buttons.serviceNode')"
               size="md"
               icon-right="router"
+              align="between"
+            />
+          </router-link>
+          <router-link to="/wallet/network-stats">
+            <q-btn
+              class="large-btn"
+              :label="$t('buttons.networkStats')"
+              size="md"
+              icon-right="network_check"
               align="between"
             />
           </router-link>

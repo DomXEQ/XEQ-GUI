@@ -1,10 +1,10 @@
 <template>
-  <span> {{ value }} OXEN </span>
+  <span> {{ value }} XEQ </span>
 </template>
 
 <script>
 export default {
-  name: "FormatOxen",
+  name: "FormatXEQ",
   props: {
     amount: {
       type: Number,

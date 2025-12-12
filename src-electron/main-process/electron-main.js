@@ -7,6 +7,15 @@ import isDev from "electron-is-dev";
 const portscanner = require("portscanner");
 const windowStateKeeper = require("electron-window-state");
 const path = require("upath");
+const fs = require("fs");
+
+// Remove NODE_OPTIONS if it contains --openssl-legacy-provider (Electron doesn't allow it)
+if (
+  process.env.NODE_OPTIONS &&
+  process.env.NODE_OPTIONS.includes("--openssl-legacy-provider")
+) {
+  delete process.env.NODE_OPTIONS;
+}
 
 /**
  * Set `__statics` path to static files in production;
@@ -25,6 +34,16 @@ let forceQuit = false;
 let installUpdate = false;
 
 const title = `${productName} v${version}`;
+
+// Add error handling for uncaught exceptions
+process.on("uncaughtException", error => {
+  console.error("Uncaught Exception in main process:", error);
+  console.error("Stack:", error.stack);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
 
 const selectionMenu = Menu.buildFromTemplate([
   { role: "copy" },
@@ -50,6 +69,28 @@ function createWindow() {
     defaultHeight: 700
   });
 
+  // Get icon path - handle both dev and production
+  let iconPath;
+  try {
+    if (process.env.PROD && __statics) {
+      iconPath = require("path").join(__statics, "icon.png");
+    } else {
+      // In dev mode, try to find icon in statics folder
+      const iconDevPath = path.join(
+        process.cwd(),
+        "src-electron",
+        "icons",
+        "icon.png"
+      );
+      if (fs.existsSync(iconDevPath)) {
+        iconPath = iconDevPath;
+      }
+    }
+  } catch (e) {
+    console.log("Icon path not found, using default");
+    iconPath = null;
+  }
+
   mainWindow = new BrowserWindow({
     x: mainWindowState.x,
     y: mainWindowState.y,
@@ -57,7 +98,7 @@ function createWindow() {
     height: mainWindowState.height,
     minWidth: 640,
     minHeight: 480,
-    icon: require("path").join(__statics, "icon.png"),
+    ...(iconPath ? { icon: iconPath } : {}),
     title,
     webPreferences: {
       nodeIntegration: true,

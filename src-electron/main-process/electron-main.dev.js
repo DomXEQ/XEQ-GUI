@@ -5,20 +5,39 @@
  *  environment.
  */
 
+// Remove NODE_OPTIONS before Electron starts (must be first thing)
+if (
+  process.env.NODE_OPTIONS &&
+  process.env.NODE_OPTIONS.includes("--openssl-legacy-provider")
+) {
+  delete process.env.NODE_OPTIONS;
+}
+
 // Install `electron-debug` with `devtron`
 require("electron-debug")({
-  showDevTools: true
+  showDevTools: false
 });
 
-// Install `vue-devtools`
+// Install `vue-devtools` (optional - disabled for now due to installation issues)
+// You can manually install it later if needed
 require("electron").app.on("ready", () => {
-  let installExtension = require("electron-devtools-installer");
-  installExtension
-    .default(installExtension.VUEJS_DEVTOOLS)
-    .then(() => {})
-    .catch(err => {
-      console.log("Unable to install `vue-devtools`: \n", err);
-    });
+  // Temporarily disabled - uncomment if you want to try installing vue-devtools
+  /*
+  try {
+    let installExtension = require("electron-devtools-installer");
+    installExtension
+      .default(installExtension.VUEJS_DEVTOOLS)
+      .then(() => {
+        console.log("Vue DevTools installed successfully");
+      })
+      .catch(err => {
+        console.log("Unable to install `vue-devtools` (this is optional):", err.message);
+      });
+  } catch (err) {
+    console.log("Vue DevTools installer not available (this is optional):", err.message);
+  }
+  */
+  console.log("Vue DevTools installation skipped (optional dev tool)");
 });
 
 // Require `main` process to boot app

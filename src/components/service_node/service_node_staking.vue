@@ -6,7 +6,7 @@
         <span
           style="cursor: pointer; text-decoration: underline;"
           @click="oxenWebsite"
-          >Oxen {{ $t("strings.website") }}.</span
+          >Equilibria {{ $t("strings.website") }}.</span
         >
       </p>
       <OxenField
@@ -160,8 +160,7 @@ export default {
         node.contributors.find(
           c => c.address === this.award_address && c.amount == 0
         );
-      const isAwaitingContribution = node =>
-        !node.active && !node.funded;
+      const isAwaitingContribution = node => !node.active && !node.funded;
       const isAwaitingContributionNonReserved = node =>
         node.requested_unlock_height === 0 &&
         isAwaitingContribution(node) &&
@@ -285,7 +284,7 @@ export default {
   },
   methods: {
     oxenWebsite() {
-      const url = "https://oxen.io/";
+      const url = "https://equilibria-network.gitbook.io/docs";
       this.$gateway.send("core", "open_url", {
         url
       });
@@ -392,7 +391,7 @@ export default {
         noPasswordMessage: this.$t("dialog.sweepAll.message"),
         ok: {
           label: this.$t("dialog.sweepAll.ok"),
-          color: "#12C7BA"
+          color: "#129fca"
         }
       });
       passwordDialog

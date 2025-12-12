@@ -78,12 +78,20 @@ export default {
   mounted() {
     this.version = version;
 
-    // set add status back to 2
+    // Reset status to allow configuration
     this.$store.commit("gateway/set_app_data", {
       status: {
-        code: 2 // Loading config
+        code: -1 // Config not found - allows welcome screen to show
       }
     });
+
+    // Ensure that if we navigate back to welcome with step parameter, we show the config step
+    if (
+      this.$route.query.step === "2" ||
+      this.$route.path === "/init/welcome"
+    ) {
+      this.step = 2;
+    }
   },
   methods: {
     clickNext() {

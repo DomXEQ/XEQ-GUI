@@ -131,19 +131,26 @@ jobs:
       - name: Find release files
         id: find_files
         run: |
-          echo "Windows files:"
+          echo "=== Windows files ==="
           find release/windows -type f 2>/dev/null || echo "No Windows files found"
-          echo "Linux files:"
+          ls -lah release/windows/ 2>/dev/null || echo "release/windows directory doesn't exist"
+          echo ""
+          echo "=== Linux files ==="
           find release/linux -type f 2>/dev/null || echo "No Linux files found"
+          ls -lah release/linux/ 2>/dev/null || echo "release/linux directory doesn't exist"
+          echo ""
+          echo "=== All release files recursively ==="
+          find release -type f 2>/dev/null || echo "No files found in release directory"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/windows/*.exe
-            release/linux/*.AppImage
-            release/linux/*.deb
+            release/**/*.exe
+            release/**/*.AppImage
+            release/**/*.deb
           fail_on_unmatched_files: false
+          generate_release_notes: false
           draft: false
           prerelease: false
           body: |
@@ -167,5 +174,7 @@ jobs:
 
             - Docker Desktop installed and running
             - Service Node and Wallet RPC running in Docker (see README for setup)
+        permissions:
+          contents: write
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

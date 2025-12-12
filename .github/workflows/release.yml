@@ -24,10 +24,10 @@ jobs:
         run: npm ci
 
       - name: Create bin directory placeholder
+        continue-on-error: true
         run: |
           if (-not (Test-Path bin)) { New-Item -ItemType Directory -Path bin }
           if (-not (Test-Path bin\.gitkeep)) { echo. > bin\.gitkeep }
-        continue-on-error: true
 
       - name: Build Windows
         run: npm run build:win

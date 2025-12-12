@@ -136,7 +136,8 @@ docker run -d \
   --daemon-address=127.0.0.1:18091 \
   --disable-rpc-login \
   --wallet-dir=/data \
-  --log-level=3
+  --log-level=3 \
+  --confirm-external-bind
 ```
 
 **Windows PowerShell:**
@@ -155,7 +156,8 @@ docker run -d `
   --daemon-address=127.0.0.1:18091 `
   --disable-rpc-login `
   --wallet-dir=/data `
-  --log-level=3
+  --log-level=3 `
+  --confirm-external-bind
 ```
 
 **Note:** The wallet RPC uses port 18084. If the GUI doesn't connect automatically, you may need to configure the wallet RPC port in the GUI settings.

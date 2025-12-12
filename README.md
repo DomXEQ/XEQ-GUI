@@ -141,7 +141,7 @@ docker run -d \
   --daemon-address=sn01:18091 \
   --disable-rpc-login \
   --wallet-dir=/data \
-  --log-level=3 \
+  --log-level=2 \
   --confirm-external-bind
 ```
 

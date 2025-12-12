@@ -103,6 +103,8 @@ jobs:
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
     if: always()
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -174,7 +176,5 @@ jobs:
 
             - Docker Desktop installed and running
             - Service Node and Wallet RPC running in Docker (see README for setup)
-        permissions:
-          contents: write
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

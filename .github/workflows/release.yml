@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*" # Triggers on version tags like v1.0.0
+
+jobs:
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "14.11.0"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create bin directory placeholder
+        run: |
+          mkdir -p bin
+          echo. > bin\.gitkeep
+
+      - name: Build Windows
+        run: npm run build:win
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: dist/electron/*.exe
+          retention-days: 30
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "14.11.0"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create bin directory placeholder
+        run: |
+          mkdir -p bin
+          touch bin/.gitkeep
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0 libappindicator3-1
+
+      - name: Build Linux
+        run: npm run build:linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            dist/electron/*.AppImage
+            dist/electron/*.deb
+          retention-days: 30
+
+  create-release:
+    name: Create Release
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: release/windows
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: release/linux
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/windows/*.exe
+            release/linux/*.AppImage
+            release/linux/*.deb
+          draft: false
+          prerelease: false
+          body: |
+            ## Equilibria Electron GUI Wallet ${{ steps.get_version.outputs.version }}
+
+            ### Downloads
+
+            **Windows:**
+            - Installer: `equilibria-electron-wallet-*-win.exe`
+            - Portable: `equilibria-electron-wallet-*-portable.exe`
+
+            **Linux:**
+            - AppImage: `equilibria-electron-wallet-*-linux.AppImage`
+            - Debian Package: `equilibria-electron-wallet-*-linux.deb`
+
+            ### Installation Instructions
+
+            See the [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for detailed installation and setup instructions.
+
+            ### Prerequisites
+
+            - Docker Desktop installed and running
+            - Service Node and Wallet RPC running in Docker (see README for setup)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

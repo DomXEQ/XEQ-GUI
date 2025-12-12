@@ -114,16 +114,14 @@ jobs:
         with:
           name: windows-build
           path: release/windows
-          if-no-files-found: warn
-          continue-on-error: true
+        continue-on-error: true
 
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux-build
           path: release/linux
-          if-no-files-found: warn
-          continue-on-error: true
+        continue-on-error: true
 
       - name: Extract version from tag
         id: get_version

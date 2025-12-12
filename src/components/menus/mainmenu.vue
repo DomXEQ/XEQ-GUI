@@ -29,7 +29,7 @@
     <!-- TODO: Move this to it's own component -->
     <q-dialog ref="aboutModal" minimized>
       <div class="about-modal">
-        <img class="q-mb-md" src="equilibria.svg" height="42" />
+        <img class="q-mb-md" src="Equilibria.svg" height="42" />
 
         <p class="q-my-sm">Wallet Version: v{{ version }}</p>
         <p class="q-my-sm">Daemon Version: v{{ daemonVersion }}</p>

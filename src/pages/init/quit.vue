@@ -2,7 +2,7 @@
   <q-page>
     <div class="init-screen-page text-center">
       <div class="absolute-center">
-        <img src="equilibria.svg" width="400" class="q-mb-md" />
+        <img src="Equilibria.svg" width="400" class="q-mb-md" />
 
         <div class="q-mt-xl q-mb-lg">
           <q-spinner color="primary" :size="30" />

@@ -19,7 +19,7 @@
           v-if="page_title == 'Equilibria'"
           class="flex items-center justify-center"
         >
-          <img src="equilibria.svg" height="32" />
+          <img src="Equilibria.svg" height="32" />
         </q-toolbar-title>
         <q-toolbar-title v-else class="flex items-center justify-center">{{
           page_title

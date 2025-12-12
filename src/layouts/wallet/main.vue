@@ -4,7 +4,7 @@
       <MainMenu />
       <q-toolbar-title style="background: white;">
         <div class="flex items-center justify-center" style="margin:8px">
-          <img src="equilibria.svg" height="32" />
+          <img src="Equilibria.svg" height="32" />
         </div>
       </q-toolbar-title>
     </q-header>

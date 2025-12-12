@@ -185,7 +185,7 @@ module.exports = function() {
               arch: ["x64"]
             }
           ],
-          icon: "src-electron/icons/icon.ico",
+          icon: "src-electron/icons/icon_512x512.png",
           publisherName: "Equilibria"
         },
 

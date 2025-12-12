@@ -75,10 +75,12 @@ docker run -dit \
   --service-node \
   --fixed-difficulty=750 \
   --data-dir=/data \
-  --p2p-bind-ip=0.0.0.0 \
-  --p2p-bind-port=18090 \
-  --rpc-bind-port=18091 \
-  --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS \
+      --p2p-bind-ip=0.0.0.0 \
+      --p2p-bind-port=18090 \
+      --rpc-bind-ip=0.0.0.0 \
+      --rpc-bind-port=18091 \
+      --confirm-external-bind \
+      --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS \
   --l2-provider=http://84.247.143.210:8545 \
   --quorumnet-port=38160 \
   --log-level=2
@@ -99,10 +101,12 @@ docker run -dit `
   --service-node `
   --fixed-difficulty=750 `
   --data-dir=/data `
-  --p2p-bind-ip=0.0.0.0 `
-  --p2p-bind-port=18090 `
-  --rpc-bind-port=18091 `
-  --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS `
+      --p2p-bind-ip=0.0.0.0 `
+      --p2p-bind-port=18090 `
+      --rpc-bind-ip=0.0.0.0 `
+      --rpc-bind-port=18091 `
+      --confirm-external-bind `
+      --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS `
   --l2-provider=http://84.247.143.210:8545 `
   --quorumnet-port=38160 `
   --log-level=2

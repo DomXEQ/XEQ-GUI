@@ -75,13 +75,16 @@ jobs:
         run: |
           echo "Searching for AppImage and deb files..."
           find . -name "*.AppImage" -o -name "*.deb" 2>/dev/null | head -20
-          echo "`nContents of dist directory:"
+          echo ""
+          echo "Contents of dist directory:"
           ls -lah dist/ 2>/dev/null || echo "dist not found"
           if [ -d dist/electron ]; then
-            echo "`nContents of dist/electron:"
+            echo ""
+            echo "Contents of dist/electron:"
             ls -lah dist/electron/
             if [ -d dist/electron/Packaged ]; then
-              echo "`nContents of dist/electron/Packaged:"
+              echo ""
+              echo "Contents of dist/electron/Packaged:"
               ls -lah dist/electron/Packaged/
             fi
           fi
@@ -92,11 +95,8 @@ jobs:
         with:
           name: linux-build
           path: |
-            dist/electron/*.AppImage
-            dist/electron/*.deb
-            dist/electron/**/*.AppImage
-            dist/electron/**/*.deb
-          if-no-files-found: warn
+            dist/electron/Packaged/*.AppImage
+            dist/electron/Packaged/*.deb
           retention-days: 30
 
   create-release:

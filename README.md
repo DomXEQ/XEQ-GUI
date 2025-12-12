@@ -166,7 +166,7 @@ Verify both containers are running:
 docker ps
 ```
 
-You should see both `equilibria-daemon` and `equilibria-wallet-rpc` running.
+You should see both `sn01` and `wallet-rpc` running.
 
 ### Step 5: Open the GUI Wallet
 
@@ -292,14 +292,14 @@ Then follow Steps 3-5 again.
 When you're done using the wallet, you can stop the Docker containers:
 
 ```bash
-docker stop equilibria-daemon equilibria-wallet-rpc
+docker stop sn01 wallet-rpc
 ```
 
 To start them again later:
 
 ```bash
-docker start equilibria-daemon
-docker start equilibria-wallet-rpc
+docker start sn01
+docker start wallet-rpc
 ```
 
 ---
@@ -310,7 +310,9 @@ The GUI wallet is configured to work with the Equilibria testnet by default. The
 
 - **P2P Port:** 18090
 - **Daemon RPC Port:** 18091
-- **Wallet RPC Port:** 22026
+- **Wallet RPC Port:** 18084
+
+**Note:** If your wallet RPC is running on a different port, you may need to configure it in the GUI settings.
 
 These ports are configured in the Docker commands above. If you need to change them, update the port mappings in the `docker run` commands.
 

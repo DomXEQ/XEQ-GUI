@@ -166,7 +166,7 @@ docker run -d `
   --confirm-external-bind
 ```
 
-**Note:** The `--daemon-address=sn01:18091` uses the Docker container name `sn01` so the wallet-rpc container can communicate with the daemon container over Docker's internal network. Both containers must be on the same Docker network (default `bridge` network).
+**Note:** The `--daemon-address=sn01:18091` uses the Docker container name `sn01` so the wallet-rpc container can communicate with the daemon container over Docker's internal network. Both containers must be on the same custom Docker network (`equilibria-network`) to enable DNS resolution by container name.
 
 **Note:** The wallet RPC uses port 18084. If the GUI doesn't connect automatically, you may need to configure the wallet RPC port in the GUI settings.
 

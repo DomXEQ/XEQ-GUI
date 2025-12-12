@@ -103,6 +103,7 @@ jobs:
     name: Create Release
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
+    if: always()
 
     steps:
       - name: Checkout code

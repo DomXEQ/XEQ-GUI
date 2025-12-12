@@ -133,11 +133,12 @@ docker run -d \
   --restart unless-stopped \
   --entrypoint /usr/local/bin/xeq-wallet-rpc \
   -v "${PWD}/wallets:/data" \
+  --network bridge \
   ghcr.io/equilibriahorizon/equilibria-node:latest \
   --testnet \
   --rpc-bind-ip=0.0.0.0 \
   --rpc-bind-port=18084 \
-  --daemon-address=127.0.0.1:18091 \
+  --daemon-address=sn01:18091 \
   --disable-rpc-login \
   --wallet-dir=/data \
   --log-level=3 \
@@ -153,16 +154,19 @@ docker run -d `
   --restart unless-stopped `
   --entrypoint /usr/local/bin/xeq-wallet-rpc `
   -v "${PWD}\wallets:/data" `
+  --network bridge `
   ghcr.io/equilibriahorizon/equilibria-node:latest `
   --testnet `
   --rpc-bind-ip=0.0.0.0 `
   --rpc-bind-port=18084 `
-  --daemon-address=127.0.0.1:18091 `
+  --daemon-address=sn01:18091 `
   --disable-rpc-login `
   --wallet-dir=/data `
   --log-level=3 `
   --confirm-external-bind
 ```
+
+**Note:** The `--daemon-address=sn01:18091` uses the Docker container name `sn01` so the wallet-rpc container can communicate with the daemon container over Docker's internal network. Both containers must be on the same Docker network (default `bridge` network).
 
 **Note:** The wallet RPC uses port 18084. If the GUI doesn't connect automatically, you may need to configure the wallet RPC port in the GUI settings.
 
@@ -269,7 +273,7 @@ docker run -d `
   --testnet `
   --rpc-bind-ip=0.0.0.0 `
   --rpc-bind-port=18084 `
-  --daemon-address=host.docker.internal:18091 `
+  --daemon-address=sn01:18091 `
   --disable-rpc-login `
   --wallet-dir=/data `
   --log-level=3 `

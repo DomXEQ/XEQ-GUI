@@ -53,36 +53,59 @@ That's it! No need to build Equilibria Core or install Node.js.
 
 ### Step 3: Start the Service Node (Daemon) in Docker
 
+**Important:** Replace `YOUR_PUBLIC_IP_ADDRESS` with your actual public IP address. You can find your public IP by visiting https://api.ipify.org or running:
+
+- **Windows (PowerShell):** `(Invoke-WebRequest -Uri "https://api.ipify.org" -UseBasicParsing).Content`
+- **Linux:** `curl https://api.ipify.org`
+
 Open a terminal/command prompt and run:
 
+**Linux:**
+
 ```bash
-docker run -d \
-  --name equilibria-daemon \
+docker run -dit \
+  --name sn01 \
   -p 18090:18090 \
   -p 18091:18091 \
-  -v equilibria-data:/data \
+  -p 38160:38160 \
+  -v "${PWD}/data/sn01:/data" \
   ghcr.io/equilibriahorizon/equilibria-node:latest \
   --testnet \
-  --rpc-bind-ip=0.0.0.0 \
-  --rpc-bind-port=18091 \
+  --dev-allow-local-ips \
+  --service-node \
+  --fixed-difficulty=750 \
+  --data-dir=/data \
   --p2p-bind-ip=0.0.0.0 \
-  --p2p-bind-port=18090
+  --p2p-bind-port=18090 \
+  --rpc-bind-port=18091 \
+  --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS \
+  --l2-provider=http://84.247.143.210:8545 \
+  --quorumnet-port=38160 \
+  --log-level=2
 ```
 
 **Windows PowerShell:**
 
 ```powershell
-docker run -d `
-  --name equilibria-daemon `
+docker run -dit `
+  --name sn01 `
   -p 18090:18090 `
   -p 18091:18091 `
-  -v equilibria-data:/data `
+  -p 38160:38160 `
+  -v "${PWD}\data\sn01:/data" `
   ghcr.io/equilibriahorizon/equilibria-node:latest `
   --testnet `
-  --rpc-bind-ip=0.0.0.0 `
-  --rpc-bind-port=18091 `
+  --dev-allow-local-ips `
+  --service-node `
+  --fixed-difficulty=750 `
+  --data-dir=/data `
   --p2p-bind-ip=0.0.0.0 `
-  --p2p-bind-port=18090
+  --p2p-bind-port=18090 `
+  --rpc-bind-port=18091 `
+  --service-node-public-ip=YOUR_PUBLIC_IP_ADDRESS `
+  --l2-provider=http://84.247.143.210:8545 `
+  --quorumnet-port=38160 `
+  --log-level=2
 ```
 
 Wait a few seconds for the container to start. You can verify it's running with:
@@ -91,7 +114,7 @@ Wait a few seconds for the container to start. You can verify it's running with:
 docker ps
 ```
 
-You should see a container named `equilibria-daemon` running.
+You should see a container named `sn01` running.
 
 ### Step 4: Start the Wallet RPC in Docker
 

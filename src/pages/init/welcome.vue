@@ -55,6 +55,12 @@ export default {
       version: ""
     };
   },
+  beforeMount() {
+    // Check if step parameter is in route query
+    if (this.$route.query.step) {
+      this.step = parseInt(this.$route.query.step) || 1;
+    }
+  },
   computed: mapState({
     theme: state => state.gateway.app.config.appearance.theme,
     pending_config: state => state.gateway.app.pending_config,

@@ -142,7 +142,18 @@
       </div>
 
       <div class="absolute-bottom">
-        {{ version }}
+        <div class="row items-center justify-between q-pa-md">
+          <div>{{ version }}</div>
+          <q-btn
+            v-if="status.code === 3 || status.code === 2"
+            flat
+            color="primary"
+            icon="settings"
+            :label="$t('buttons.settings')"
+            class="settings-button"
+            @click="goToSettings"
+          />
+        </div>
       </div>
     </div>
   </q-page>
@@ -193,6 +204,10 @@ export default {
     this.updateStatus();
   },
   methods: {
+    goToSettings() {
+      // Navigate back to welcome screen to reconfigure daemon settings
+      this.$router.replace({ path: "/init/welcome?step=2" });
+    },
     updateStatus() {
       switch (this.status.code) {
         case -1: // config not found, go to welcome screen

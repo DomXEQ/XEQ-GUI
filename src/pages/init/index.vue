@@ -145,7 +145,7 @@
         <div class="row items-center justify-between q-pa-md">
           <div>{{ version }}</div>
           <q-btn
-            v-if="status.code === 3 || status.code === 2"
+            v-if="status.code >= 1 && status.code <= 7"
             flat
             color="primary"
             icon="settings"
@@ -205,6 +205,12 @@ export default {
   },
   methods: {
     goToSettings() {
+      // Reset status to allow reconfiguration
+      this.$store.commit("gateway/set_app_data", {
+        status: {
+          code: -1 // Config not found - will trigger welcome screen
+        }
+      });
       // Navigate back to welcome screen to reconfigure daemon settings
       this.$router.replace({ path: "/init/welcome?step=2" });
     },

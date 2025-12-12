@@ -129,11 +129,11 @@ In the same terminal, run:
 ```bash
 docker run -d \
   --name wallet-rpc \
+  --network equilibria-network \
   -p 18084:18084 \
   --restart unless-stopped \
   --entrypoint /usr/local/bin/xeq-wallet-rpc \
   -v "${PWD}/wallets:/data" \
-  --network bridge \
   ghcr.io/equilibriahorizon/equilibria-node:latest \
   --testnet \
   --rpc-bind-ip=0.0.0.0 \
@@ -150,11 +150,11 @@ docker run -d \
 ```powershell
 docker run -d `
   --name wallet-rpc `
+  --network equilibria-network `
   -p 18084:18084 `
   --restart unless-stopped `
   --entrypoint /usr/local/bin/xeq-wallet-rpc `
   -v "${PWD}\wallets:/data" `
-  --network bridge `
   ghcr.io/equilibriahorizon/equilibria-node:latest `
   --testnet `
   --rpc-bind-ip=0.0.0.0 `

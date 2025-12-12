@@ -23,11 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create bin directory placeholder
-        continue-on-error: true
+      - name: Ensure bin directory exists
         run: |
-          if (-not (Test-Path bin)) { New-Item -ItemType Directory -Path bin }
-          if (-not (Test-Path bin\.gitkeep)) { echo. > bin\.gitkeep }
+          if (-not (Test-Path bin)) { New-Item -ItemType Directory -Force -Path bin | Out-Null }
 
       - name: Build Windows
         run: npm run build:win

@@ -120,37 +120,45 @@ You should see a container named `sn01` running.
 
 In the same terminal, run:
 
+**Linux:**
+
 ```bash
 docker run -d \
-  --name equilibria-wallet-rpc \
-  -p 22026:22026 \
-  -v equilibria-wallets:/wallets \
-  --network host \
+  --name wallet-rpc \
+  -p 18084:18084 \
+  --restart unless-stopped \
+  --entrypoint /usr/local/bin/xeq-wallet-rpc \
+  -v "${PWD}/wallets:/data" \
   ghcr.io/equilibriahorizon/equilibria-node:latest \
-  xeq-wallet-rpc \
   --testnet \
   --rpc-bind-ip=0.0.0.0 \
-  --rpc-bind-port=22026 \
+  --rpc-bind-port=18084 \
   --daemon-address=127.0.0.1:18091 \
-  --wallet-dir=/wallets
+  --disable-rpc-login \
+  --wallet-dir=/data \
+  --log-level=3
 ```
 
 **Windows PowerShell:**
 
 ```powershell
 docker run -d `
-  --name equilibria-wallet-rpc `
-  -p 22026:22026 `
-  -v equilibria-wallets:/wallets `
-  --network host `
+  --name wallet-rpc `
+  -p 18084:18084 `
+  --restart unless-stopped `
+  --entrypoint /usr/local/bin/xeq-wallet-rpc `
+  -v "${PWD}\wallets:/data" `
   ghcr.io/equilibriahorizon/equilibria-node:latest `
-  xeq-wallet-rpc `
   --testnet `
   --rpc-bind-ip=0.0.0.0 `
-  --rpc-bind-port=22026 `
+  --rpc-bind-port=18084 `
   --daemon-address=127.0.0.1:18091 `
-  --wallet-dir=/wallets
+  --disable-rpc-login `
+  --wallet-dir=/data `
+  --log-level=3
 ```
+
+**Note:** The wallet RPC uses port 18084. If the GUI doesn't connect automatically, you may need to configure the wallet RPC port in the GUI settings.
 
 Verify both containers are running:
 
@@ -232,8 +240,8 @@ docker logs equilibria-wallet-rpc
 If you get an error about ports being in use, you may have another instance running. Stop existing containers:
 
 ```bash
-docker stop equilibria-daemon equilibria-wallet-rpc
-docker rm equilibria-daemon equilibria-wallet-rpc
+docker stop sn01 wallet-rpc
+docker rm sn01 wallet-rpc
 ```
 
 Then restart them using the commands in Steps 3 and 4.
@@ -242,28 +250,37 @@ Then restart them using the commands in Steps 3 and 4.
 
 Make sure the wallet RPC container can reach the daemon. On Windows, you may need to use `host.docker.internal` instead of `127.0.0.1`:
 
-```bash
-docker run -d \
-  --name equilibria-wallet-rpc \
-  -p 22026:22026 \
-  -v equilibria-wallets:/wallets \
-  ghcr.io/equilibriahorizon/equilibria-node:latest \
-  xeq-wallet-rpc \
-  --testnet \
-  --rpc-bind-ip=0.0.0.0 \
-  --rpc-bind-port=22026 \
-  --daemon-address=host.docker.internal:18091 \
-  --wallet-dir=/wallets
+**Windows PowerShell:**
+
+```powershell
+docker run -d `
+  --name wallet-rpc `
+  -p 18084:18084 `
+  --restart unless-stopped `
+  --entrypoint /usr/local/bin/xeq-wallet-rpc `
+  -v "${PWD}\wallets:/data" `
+  ghcr.io/equilibriahorizon/equilibria-node:latest `
+  --testnet `
+  --rpc-bind-ip=0.0.0.0 `
+  --rpc-bind-port=18084 `
+  --daemon-address=host.docker.internal:18091 `
+  --disable-rpc-login `
+  --wallet-dir=/data `
+  --log-level=3
 ```
 
 ### Resetting Everything
 
 To start fresh (this will delete all wallet data):
 
+**Warning:** This will delete your Service Node data and wallets!
+
 ```bash
-docker stop equilibria-daemon equilibria-wallet-rpc
-docker rm equilibria-daemon equilibria-wallet-rpc
-docker volume rm equilibria-data equilibria-wallets
+docker stop sn01 wallet-rpc
+docker rm sn01 wallet-rpc
+rm -rf data/sn01 wallets  # Linux
+# or on Windows PowerShell:
+# Remove-Item -Recurse -Force data\sn01, wallets
 ```
 
 Then follow Steps 3-5 again.

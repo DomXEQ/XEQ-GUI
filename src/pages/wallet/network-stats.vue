@@ -27,7 +27,7 @@
       <q-card>
         <q-card-section>
           <div class="row items-center justify-between q-mb-md">
-            <div class="text-h6">{{ $t("strings.allServiceNodes") }}</div>
+            <div class="text-h6">Service Nodes</div>
             <q-btn
               flat
               dense
@@ -82,7 +82,7 @@
 
             <template v-slot:body-cell-total_contributed="props">
               <q-td :props="props">
-                <FormatXEQ :amount="props.value" />
+                {{ formatStakedAmount(props.row) }}
               </q-td>
             </template>
           </q-table>
@@ -94,13 +94,9 @@
 
 <script>
 import { mapState } from "vuex";
-import FormatXEQ from "components/format_oxen";
 
 export default {
   name: "NetworkStats",
-  components: {
-    FormatXEQ
-  },
   data() {
     return {
       loading: false,
@@ -134,7 +130,10 @@ export default {
         {
           name: "total_contributed",
           label: "Staked Amount",
-          field: "total_contributed",
+          field: row => {
+            // Use total_contributed for sorting
+            return row.total_contributed || 0;
+          },
           align: "right",
           sortable: true
         },
@@ -198,6 +197,22 @@ export default {
       if (!timestamp) return "N/A";
       const date = new Date(timestamp * 1000);
       return date.toLocaleString();
+    },
+    formatStakedAmount(node) {
+      // Calculate staked amount and total requirement
+      const staked = node.total_contributed || 0;
+      const stakingRequirement = node.staking_requirement || 0;
+
+      // Convert from atomic units to XEQ (divide by 1e9)
+      const stakedXEQ = Math.round(staked / 1e9);
+      const requiredXEQ = Math.round(stakingRequirement / 1e9);
+
+      // Return format: "staked/required" (e.g., "10/100" or "100/100")
+      if (stakingRequirement === 0) {
+        return `${stakedXEQ}/?`;
+      }
+
+      return `${stakedXEQ}/${requiredXEQ}`;
     }
   }
 };

@@ -95,7 +95,8 @@ export class WalletRPC {
       // For remote wallets, use the wallet_data_dir directly (not a subdirectory)
       // The Docker wallet-rpc uses --wallet-dir=/data, and wallets are directly in that directory
       // So we read from wallet_data_dir directly to match the Docker volume mount
-      this.wallet_dir = this.wallet_data_dir;
+      // Ensure we use an absolute path
+      this.wallet_dir = path.resolve(this.wallet_data_dir);
 
       // For Docker setups, if wallet_data_dir doesn't exist, try common locations
       if (!this.local && !fs.existsSync(this.wallet_dir)) {
@@ -174,7 +175,10 @@ export class WalletRPC {
           testnet: path.join(this.wallet_data_dir, "testnet")
         };
 
-        this.wallet_dir = path.join(this.dirs[net_type], "wallets");
+        // Use wallet_data_dir directly (which should be the wallets folder in project root)
+        // Don't create subdirectories like testnet/wallets, just use the wallets folder directly
+        // Ensure we use an absolute path for wallet-rpc
+        this.wallet_dir = path.resolve(this.wallet_data_dir);
         args.push("--wallet-dir", this.wallet_dir);
 
         const log_file = path.join(
@@ -194,9 +198,23 @@ export class WalletRPC {
           fs.truncateSync(log_file, 0);
         }
 
+        // Ensure wallet directory exists
         if (!fs.existsSync(this.wallet_dir)) {
           fs.mkdirpSync(this.wallet_dir);
         }
+
+        // Log the wallet directory for debugging
+        console.log(`[WalletRPC] Wallet directory set to: ${this.wallet_dir}`);
+        console.log(
+          `[WalletRPC] Wallet directory exists: ${fs.existsSync(
+            this.wallet_dir
+          )}`
+        );
+        console.log(
+          `[WalletRPC] Wallet directory is absolute: ${path.isAbsolute(
+            this.wallet_dir
+          )}`
+        );
 
         // save this info for later RPC calls
         this.protocol = "http://";
@@ -607,6 +625,10 @@ export class WalletRPC {
   createWallet(filename, password, language, hardware_wallet) {
     // Reset the status error
     this.sendGateway("reset_wallet_error");
+
+    console.log(`[WalletRPC] Creating wallet: ${filename}`);
+    console.log(`[WalletRPC] Wallet directory: ${this.wallet_dir}`);
+
     this.sendRPC("create_wallet", {
       filename,
       password,
@@ -615,9 +637,26 @@ export class WalletRPC {
       device_label: hardware_wallet ? "hardware_wallet" : undefined
     }).then(data => {
       if (data.hasOwnProperty("error")) {
+        console.error(`[WalletRPC] Error creating wallet:`, data.error);
         this.sendGateway("set_wallet_error", { status: data.error });
         return;
       }
+
+      console.log(`[WalletRPC] Wallet created successfully: ${filename}`);
+
+      // Verify wallet files were created
+      const wallet_file = path.join(this.wallet_dir, filename);
+      const keys_file = wallet_file + ".keys";
+      console.log(
+        `[WalletRPC] Checking wallet file: ${wallet_file}, exists: ${fs.existsSync(
+          wallet_file
+        )}`
+      );
+      console.log(
+        `[WalletRPC] Checking keys file: ${keys_file}, exists: ${fs.existsSync(
+          keys_file
+        )}`
+      );
 
       // store hash of the password so we can check against it later when requesting private keys, or for sending txs
       // For remote wallets, this.auth[2] might be null, so generate a salt if needed
@@ -2888,14 +2927,17 @@ export class WalletRPC {
       directories: []
     };
 
-    // For remote wallets, if wallet_dir doesn't exist, try to find wallets in common locations
+    let wallet_dir_to_scan = this.wallet_dir;
+
+    // If wallet_dir doesn't exist or isn't a directory, try to find wallets in common locations
+    // This works for both local and remote wallets
     if (
-      !this.local &&
-      (!fs.existsSync(this.wallet_dir) ||
-        !fs.statSync(this.wallet_dir).isDirectory())
+      !wallet_dir_to_scan ||
+      !fs.existsSync(wallet_dir_to_scan) ||
+      !fs.statSync(wallet_dir_to_scan).isDirectory()
     ) {
       const commonPaths = [
-        path.join(process.cwd(), "wallets"), // Docker: ./wallets
+        path.join(process.cwd(), "wallets"), // Project root: ./wallets (highest priority)
         path.join(os.homedir(), "wallets"), // ~/wallets
         path.join(os.homedir(), "Documents", "wallets"), // Windows: Documents/wallets
         path.join(os.homedir(), "Equilibria", "wallets") // ~/Equilibria/wallets
@@ -2910,8 +2952,15 @@ export class WalletRPC {
             const files = fs.readdirSync(commonPath);
             // Check if this directory has any .keys files (wallet files)
             const hasWallets = files.some(f => f.endsWith(".keys"));
-            if (hasWallets) {
-              this.wallet_dir = commonPath;
+            if (hasWallets || files.length > 0) {
+              wallet_dir_to_scan = commonPath;
+              // Update this.wallet_dir so future operations use the correct path
+              if (!this.wallet_dir || !fs.existsSync(this.wallet_dir)) {
+                this.wallet_dir = commonPath;
+                console.log(
+                  `[WalletRPC] Auto-detected wallet directory: ${this.wallet_dir}`
+                );
+              }
               break;
             }
           } catch (e) {
@@ -2919,12 +2968,31 @@ export class WalletRPC {
           }
         }
       }
+
+      // If still no valid directory found, default to wallets in project root
+      if (!wallet_dir_to_scan || !fs.existsSync(wallet_dir_to_scan)) {
+        wallet_dir_to_scan = path.join(process.cwd(), "wallets");
+        // Create it if it doesn't exist
+        if (!fs.existsSync(wallet_dir_to_scan)) {
+          fs.mkdirpSync(wallet_dir_to_scan);
+        }
+        this.wallet_dir = wallet_dir_to_scan;
+        console.log(
+          `[WalletRPC] Using default wallet directory: ${this.wallet_dir}`
+        );
+      }
     }
 
     let walletFiles = [];
     try {
-      walletFiles = fs.readdirSync(this.wallet_dir);
+      walletFiles = fs.readdirSync(wallet_dir_to_scan);
+      console.log(`[WalletRPC] Scanning for wallets in: ${wallet_dir_to_scan}`);
+      console.log(`[WalletRPC] Found ${walletFiles.length} files/directories`);
     } catch (e) {
+      console.error(
+        `[WalletRPC] Error reading wallet directory ${wallet_dir_to_scan}:`,
+        e
+      );
       this.sendGateway("show_notification", {
         type: "negative",
         i18n: "notification.errors.failedWalletRead",
@@ -2948,7 +3016,7 @@ export class WalletRPC {
         }
 
         // If it's a directory then check if it's an old gui wallet
-        const name = path.join(this.wallet_dir, filename);
+        const name = path.join(wallet_dir_to_scan, filename);
         const stat = fs.statSync(name);
         if (stat.isDirectory()) {
           // Make sure the directory has keys file
@@ -2976,10 +3044,12 @@ export class WalletRPC {
         };
 
         if (
-          fs.existsSync(path.join(this.wallet_dir, wallet_name + ".meta.json"))
+          fs.existsSync(
+            path.join(wallet_dir_to_scan, wallet_name + ".meta.json")
+          )
         ) {
           let meta = fs.readFileSync(
-            path.join(this.wallet_dir, wallet_name + ".meta.json"),
+            path.join(wallet_dir_to_scan, wallet_name + ".meta.json"),
             "utf8"
           );
           if (meta) {
@@ -2989,11 +3059,11 @@ export class WalletRPC {
           }
         } else if (
           fs.existsSync(
-            path.join(this.wallet_dir, wallet_name + ".address.txt")
+            path.join(wallet_dir_to_scan, wallet_name + ".address.txt")
           )
         ) {
           let address = fs.readFileSync(
-            path.join(this.wallet_dir, wallet_name + ".address.txt"),
+            path.join(wallet_dir_to_scan, wallet_name + ".address.txt"),
             "utf8"
           );
           if (address) {
@@ -3002,7 +3072,9 @@ export class WalletRPC {
         }
 
         if (
-          fs.existsSync(path.join(this.wallet_dir, wallet_name + ".hwdev.txt"))
+          fs.existsSync(
+            path.join(wallet_dir_to_scan, wallet_name + ".hwdev.txt")
+          )
         ) {
           wallet_data.hardware_wallet = true;
         }
@@ -3066,6 +3138,7 @@ export class WalletRPC {
       }
     }
 
+    console.log(`[WalletRPC] Found ${wallets.list.length} wallets in list`);
     this.sendGateway("wallet_list", wallets);
   }
 

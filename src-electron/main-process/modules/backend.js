@@ -41,12 +41,14 @@ export class Backend {
       configDir = "C:\\ProgramData\\equilibria";
       legacyLokiConfigDir = "C:\\ProgramData\\loki\\";
       legacyOxenConfigDir = "C:\\ProgramData\\oxen\\";
-      this.wallet_dir = `${os.homedir()}\\Documents\\Equilibria`;
+      // Use wallets folder in the application directory
+      this.wallet_dir = path.join(process.cwd(), "wallets");
     } else {
       configDir = path.join(os.homedir(), ".equilibria");
       legacyLokiConfigDir = path.join(os.homedir(), ".loki/");
       legacyOxenConfigDir = path.join(os.homedir(), ".oxen/");
-      this.wallet_dir = path.join(os.homedir(), "Equilibria");
+      // Use wallets folder in the application directory
+      this.wallet_dir = path.join(process.cwd(), "wallets");
     }
 
     // if the user has used loki or oxen before, just keep the same stuff
@@ -105,16 +107,18 @@ export class Backend {
     };
 
     // Default values
+    // Use wallets folder in the application directory
+    const defaultWalletDir = path.join(process.cwd(), "wallets");
     this.defaults = {
       daemons: objectAssignDeep({}, daemons),
       app: {
         data_dir: this.config_dir,
-        wallet_data_dir: this.wallet_dir,
+        wallet_data_dir: defaultWalletDir,
         ws_bind_port: 12313,
         net_type: "testnet"
       },
       wallet: {
-        type: "local",
+        type: "remote",
         rpc_bind_port: 22026,
         remote_host: "127.0.0.1",
         remote_port: 18084,
@@ -475,9 +479,21 @@ export class Backend {
 
       // Make the wallet dir
       const { wallet_data_dir, data_dir } = this.config_data.app;
-      if (!fs.existsSync(wallet_data_dir)) {
-        fs.mkdirpSync(wallet_data_dir);
+      // Ensure wallet_data_dir uses the wallets folder in project root
+      const defaultWalletDir = path.join(process.cwd(), "wallets");
+      if (
+        !this.config_data.app.wallet_data_dir ||
+        this.config_data.app.wallet_data_dir !== defaultWalletDir
+      ) {
+        // Update to use the wallets folder if it's different
+        this.config_data.app.wallet_data_dir = defaultWalletDir;
       }
+      if (!fs.existsSync(this.config_data.app.wallet_data_dir)) {
+        fs.mkdirpSync(this.config_data.app.wallet_data_dir);
+      }
+      console.log(
+        `[Backend] Wallet directory set to: ${this.config_data.app.wallet_data_dir}`
+      );
 
       // Check to see if data and wallet directories exist
       const dirs_to_check = [

@@ -185,7 +185,7 @@ module.exports = function() {
               arch: ["x64"]
             }
           ],
-          icon: "src-electron/icons/icon.ico",
+          icon: "src-electron/icons/icon_512x512.png",
           publisherName: "Equilibria"
         },
 
@@ -194,10 +194,7 @@ module.exports = function() {
           allowToChangeInstallationDirectory: true,
           createDesktopShortcut: true,
           createStartMenuShortcut: true,
-          shortcutName: "Equilibria Electron Wallet",
-          installerIcon: "src-electron/icons/icon.ico",
-          uninstallerIcon: "src-electron/icons/icon.ico",
-          installerHeaderIcon: "src-electron/icons/icon.ico"
+          shortcutName: "Equilibria Electron Wallet"
         },
 
         portable: {

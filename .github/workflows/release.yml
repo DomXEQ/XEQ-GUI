@@ -33,7 +33,9 @@ jobs:
           Write-Host "`nContents of dist directory:"
           if (Test-Path dist) { Get-ChildItem -Path dist -Recurse -Directory | Select-Object FullName }
           Write-Host "`nContents of dist/electron if it exists:"
-          if (Test-Path dist/electron) { Get-ChildItem -Path dist/electron -Recurse | Select-Object Name, FullName }
+          if (Test-Path dist/electron) { Get-ChildItem -Path dist/electron -Recurse | Select-Object Name, FullName, Length | Format-Table -AutoSize }
+          Write-Host "`nContents of dist/electron/Packaged if it exists:"
+          if (Test-Path dist/electron/Packaged) { Get-ChildItem -Path dist/electron/Packaged -Recurse | Select-Object Name, FullName, Length | Format-Table -AutoSize }
         continue-on-error: true
 
       - name: Upload Windows artifacts
@@ -41,8 +43,7 @@ jobs:
         with:
           name: windows-build
           path: |
-            dist/electron/equilibria-electron-wallet-*-win.exe
-            dist/electron/equilibria-electron-wallet-*-portable.exe
+            dist/electron/**/*.exe
           retention-days: 30
 
   build-linux:

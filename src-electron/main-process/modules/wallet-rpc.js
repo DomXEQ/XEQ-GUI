@@ -97,6 +97,21 @@ export class WalletRPC {
       // So we read from wallet_data_dir directly to match the Docker volume mount
       this.wallet_dir = this.wallet_data_dir;
 
+      // For Docker setups, if wallet_data_dir doesn't exist, try common locations
+      if (!this.local && !fs.existsSync(this.wallet_dir)) {
+        // Try ./wallets (common Docker location)
+        const cwdWallets = path.join(process.cwd(), "wallets");
+        if (fs.existsSync(cwdWallets)) {
+          this.wallet_dir = cwdWallets;
+        } else {
+          // Try wallets folder in user's home directory
+          const homeWallets = path.join(os.homedir(), "wallets");
+          if (fs.existsSync(homeWallets)) {
+            this.wallet_dir = homeWallets;
+          }
+        }
+      }
+
       return new Promise((resolve, reject) => {
         // Test connection to remote wallet RPC
         this.sendRPC("get_languages", {}, 5000)
@@ -2872,6 +2887,39 @@ export class WalletRPC {
       list: [],
       directories: []
     };
+
+    // For remote wallets, if wallet_dir doesn't exist, try to find wallets in common locations
+    if (
+      !this.local &&
+      (!fs.existsSync(this.wallet_dir) ||
+        !fs.statSync(this.wallet_dir).isDirectory())
+    ) {
+      const commonPaths = [
+        path.join(process.cwd(), "wallets"), // Docker: ./wallets
+        path.join(os.homedir(), "wallets"), // ~/wallets
+        path.join(os.homedir(), "Documents", "wallets"), // Windows: Documents/wallets
+        path.join(os.homedir(), "Equilibria", "wallets") // ~/Equilibria/wallets
+      ];
+
+      for (const commonPath of commonPaths) {
+        if (
+          fs.existsSync(commonPath) &&
+          fs.statSync(commonPath).isDirectory()
+        ) {
+          try {
+            const files = fs.readdirSync(commonPath);
+            // Check if this directory has any .keys files (wallet files)
+            const hasWallets = files.some(f => f.endsWith(".keys"));
+            if (hasWallets) {
+              this.wallet_dir = commonPath;
+              break;
+            }
+          } catch (e) {
+            // Continue to next path
+          }
+        }
+      }
+    }
 
     let walletFiles = [];
     try {

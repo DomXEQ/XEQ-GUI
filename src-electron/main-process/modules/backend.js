@@ -86,7 +86,7 @@ export class Backend {
     const daemons = {
       mainnet: {
         ...daemon,
-        type: "local",  // Mainnet is offline - use local mode for offline wallet creation
+        type: "local",
         remote_host: "seed1.equilibria.network",
         remote_port: 9231
       },
@@ -785,16 +785,16 @@ export class Backend {
       this.daemon = new Daemon(this);
       this.walletd = new WalletRPC(this);
 
-      // Check if we should auto-connect (legacy network with remote node)
+      // Auto-connect when a remote node is configured (legacy or mainnet)
       const shouldAutoConnect =
-        net_type === "legacy" &&
+        (net_type === "legacy" || net_type === "mainnet") &&
         this.config_data.daemons[net_type] &&
         this.config_data.daemons[net_type].type === "remote";
 
       if (shouldAutoConnect) {
-        this.sendLog("info", "Legacy network detected with remote node - auto-connecting...");
+        this.sendLog("info", `${net_type} network detected with remote node - auto-connecting...`);
       } else {
-        this.sendLog("info", "Backend initialized in offline mode.");
+        this.sendLog("info", "Backend initialized - connect manually via Network Settings.");
       }
 
       // Start in appropriate mode

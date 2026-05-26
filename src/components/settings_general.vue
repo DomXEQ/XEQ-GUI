@@ -21,10 +21,9 @@
 
     <!-- Warning messages for network status -->
     <div v-if="config.app.net_type === 'mainnet' && !daemon_connected" class="network-warning q-mb-md q-pa-md">
-      <q-icon name="warning" color="warning" size="sm" class="q-mr-sm" />
+      <q-icon name="info" color="info" size="sm" class="q-mr-sm" />
       <span class="warning-text">
-        <strong>Mainnet is currently offline.</strong> You can create an offline wallet to generate your address and keys.
-        When mainnet launches, your wallet will be ready to use.
+        Select <strong>Local Node</strong> to run your own daemon, or <strong>Remote Node</strong> to connect to an existing node, then click <strong>Connect</strong>.
       </span>
     </div>
     <div v-if="config.app.net_type === 'legacy' && !daemon_connected" class="network-warning q-mb-md q-pa-md">
@@ -60,7 +59,7 @@
             v-if="!daemon_connected"
             color="primary"
             :loading="daemon_connecting"
-            :disable="daemon_connecting || isMainnetOffline"
+            :disable="daemon_connecting"
             @click="connectDaemon"
           >
             <q-icon name="power" class="q-mr-sm" />
@@ -77,9 +76,6 @@
           </q-btn>
         </div>
       </div>
-      <p v-if="config.app.net_type === 'mainnet'" class="q-mt-sm q-mb-none text-grey-6" style="font-size: 12px;">
-        Connect is disabled for mainnet (network is offline). You can still create offline wallets.
-      </p>
     </div>
 
     <div class="row justify-between q-mb-md">
@@ -96,7 +92,7 @@
           v-model="selectedDaemonType"
           val="remote"
           :label="$t('strings.daemon.remote.title')"
-          :disable="config.app.net_type === 'testnet' || config.app.net_type === 'mainnet'"
+          :disable="config.app.net_type === 'testnet'"
           @update:model-value="onDaemonTypeChange"
         />
       </div>
@@ -184,7 +180,7 @@
               </q-item>
             </q-list>
           </q-btn-dropdown>
-          <!-- Remote node presets for mainnet (when available) -->
+          <!-- Remote node presets for mainnet -->
           <q-btn-dropdown
             v-if="config.app.net_type === 'mainnet' && remotes && remotes.length > 0"
             class="remote-dropdown"
@@ -567,12 +563,8 @@ export default {
         case "legacy":
           return "Legacy Mainnet";
         default:
-          return "Mainnet (Offline)";
+          return "Mainnet";
       }
-    },
-    isMainnetOffline() {
-      // Only new mainnet is offline; legacy and testnet can connect
-      return this.config.app && this.config.app.net_type === "mainnet";
     },
     blockchainDataDir() {
       if (!this.config.app || !this.config.app.data_dir) return "";
@@ -597,28 +589,19 @@ export default {
   mounted() {
     if (!this.config.app || !this.config.daemons) return;
 
-    // Default to local node for mainnet/testnet since remote nodes are not available
-    // Legacy has working remote nodes, so default to remote for legacy
     if (this.randomiseRemote) {
-      if (this.config.app.net_type === "legacy") {
+      if (this.config.app.net_type === "legacy" || this.config.app.net_type === "mainnet") {
         this.config_daemon.type = "remote";
       } else {
         this.config_daemon.type = "local";
       }
     }
 
-    // If someone had local_remote saved, fall back appropriately
     if (this.config_daemon.type === "local_remote") {
-      if (this.config.app.net_type === "legacy") {
-        this.config_daemon.type = "remote";
-      } else {
-        this.config_daemon.type = "local";
-      }
+      this.config_daemon.type = "remote";
     }
 
-    // Force local for testnet and mainnet since no remote nodes are available
-    // Legacy can use remote nodes
-    if (this.config.app.net_type === "testnet" || this.config.app.net_type === "mainnet") {
+    if (this.config.app.net_type === "testnet") {
       this.config_daemon.type = "local";
     }
 
